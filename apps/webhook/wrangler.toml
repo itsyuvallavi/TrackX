@@ -1,0 +1,14 @@
+name = "trackx-webhook"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+
+[vars]
+DEFAULT_TIMEZONE = "Europe/Lisbon"
+DEFAULT_CURRENCY = "EUR"
+
+# Set secrets with:
+#   wrangler secret put TELEGRAM_BOT_TOKEN
+#   wrangler secret put TELEGRAM_ALLOWED_USER_IDS
+#   wrangler secret put API_BASE_URL
+# Optional:
+#   wrangler secret put TELEGRAM_WEBHOOK_SECRET

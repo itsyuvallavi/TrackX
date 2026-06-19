@@ -1,0 +1,27 @@
+{
+  "name": "@trackx/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared schemas, category rules, and budget helpers for TrackX.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.0"
+  }
+}

@@ -1,0 +1,498 @@
+# TrackX
+
+TrackX is a Telegram-first AI expense tracker. Send natural-language finance messages to a Telegram bot, parse them into structured transactions, store them in Postgres, update weekly and monthly budgets, and review the same data in a web dashboard.
+
+The MVP vertical path is implemented locally: parser, API, bot, web dashboard, and a BullMQ worker placeholder. Production direction is Vercel Route Handlers, Supabase Postgres, and Cloudflare Telegram webhooks; no production Redis/BullMQ worker is planned for now.
+
+## Quick Start
+
+From a fresh clone:
+
+```bash
+cp .env.example .env
+pnpm install
+pnpm infra:up
+pnpm db:migrate
+pnpm db:seed
+```
+
+Add `OPENAI_API_KEY` to `.env` for live parsing, then start services in separate terminals:
+
+```bash
+pnpm parser:dev
+pnpm api:dev
+pnpm web:dev
+```
+
+Verify the MVP path:
+
+```bash
+curl -s \
+  -H 'content-type: application/json' \
+  -d '{"message":"spent 15 eur on food","timezone":"Europe/Lisbon","defaultCurrency":"EUR"}' \
+  http://localhost:4001/transactions/from-message
+```
+
+Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard) and confirm the transaction appears.
+
+Optional:
+
+```bash
+pnpm bot:dev      # requires TELEGRAM_BOT_TOKEN and allowlist in .env
+pnpm worker:dev   # requires Redis from pnpm infra:up
+```
+
+Architecture notes live in [docs/architecture.md](./docs/architecture.md). Target cloud platform decisions live in [docs/platform-stack.md](./docs/platform-stack.md). Full local paths live in [docs/local-development.md](./docs/local-development.md).
+
+## MVP Scope
+
+Implemented locally:
+
+- Telegram bot for natural-language expense and income logging
+- Parser service with OpenAI structured output
+- Fastify API for transactions, budgets, and dashboard data
+- Prisma/Postgres data model with seed budgets and categories
+- Next.js dashboard for month/week summaries and transaction edit/delete
+- BullMQ worker placeholder connected to Redis
+- Shared Zod schemas and offline-first unit tests
+
+Deferred after MVP:
+
+- Auth for the web dashboard
+- Bank integrations
+- Sentry and deployment pipelines
+- Live scheduled worker jobs
+- Production Redis/BullMQ worker
+- Exchange-rate conversion in budget totals
+
+## Repository Layout
+
+```text
+apps/
+  web/                 Next.js dashboard
+  bot/                 Telegram bot service (polling, local MVP)
+  webhook/             Cloudflare Worker Telegram webhook
+
+services/
+  api/                 Fastify API service (local stepping stone before Vercel route migration)
+  parser/              AI/parser service
+  worker/              BullMQ worker placeholder (local experiment, not production default)
+
+packages/
+  config/              Shared environment parsing
+  db/                  Prisma schema, migrations, seed data, client
+  shared/              Zod schemas, types, category rules, budget helpers
+
+docs/
+  architecture.md
+  cloudflare-webhook.md
+  local-development.md
+  parser-behavior.md
+  platform-stack.md
+  telegram-setup.md
+```
+
+## Prerequisites
+
+- Node.js 22 or newer
+- pnpm 10 or newer
+- Docker with Docker Compose
+
+Observed local versions during scaffold:
+
+- Node.js `v24.6.0`
+- pnpm `10.18.3`
+- Docker `29.4.3`
+- Docker Compose `v5.1.4`
+
+## Setup
+
+Create a local env file from the example:
+
+```bash
+cp .env.example .env
+```
+
+The example values are safe placeholders. Add real secrets only to `.env`, never to committed files.
+
+Install dependencies:
+
+```bash
+pnpm install
+```
+
+Start local infrastructure:
+
+```bash
+pnpm infra:up
+```
+
+Check Docker Compose configuration:
+
+```bash
+pnpm infra:config
+```
+
+Stop local infrastructure:
+
+```bash
+pnpm infra:down
+```
+
+## Root Commands
+
+```bash
+pnpm dev
+pnpm build
+pnpm test
+pnpm typecheck
+pnpm mvp:check
+pnpm lint
+pnpm format
+pnpm format:check
+pnpm api:dev
+pnpm bot:dev
+pnpm web:dev
+pnpm worker:dev
+pnpm webhook:dev
+pnpm parser:dev
+pnpm db:validate
+pnpm db:generate
+pnpm db:migrate
+pnpm db:seed
+pnpm db:studio
+pnpm infra:config
+pnpm infra:up
+pnpm infra:down
+pnpm infra:logs
+pnpm stack:config
+pnpm stack:build
+pnpm stack:up
+pnpm stack:down
+pnpm stack:logs
+```
+
+`pnpm mvp:check` runs typecheck, test, and format:check together.
+
+## Packages
+
+### `@trackx/shared`
+
+Status: implemented in Slice 2.
+
+Ownership:
+
+- Shared Zod schemas for parser, transactions, budgets, dashboard responses, and Telegram feedback.
+- Canonical category and currency constants.
+- Deterministic category matcher.
+- Pure budget and date helpers.
+
+Focused commands:
+
+```bash
+pnpm --filter @trackx/shared test
+pnpm --filter @trackx/shared typecheck
+pnpm --filter @trackx/shared build
+```
+
+Parser/category behavior notes live in [docs/parser-behavior.md](./docs/parser-behavior.md).
+
+### `@trackx/config`
+
+Status: implemented in Slice 3.
+
+Ownership:
+
+- Validated environment parsing for API, parser, bot, and worker services.
+- Shared default currency and timezone handling.
+- Telegram allowlist parsing.
+- Optional secret normalization, where empty strings become missing values.
+
+Focused commands:
+
+```bash
+pnpm --filter @trackx/config test
+pnpm --filter @trackx/config typecheck
+pnpm --filter @trackx/config build
+```
+
+### `@trackx/db`
+
+Status: implemented in Slice 4.
+
+Ownership:
+
+- Prisma schema for users, categories, transactions, budgets, exchange rates, and parse events.
+- Prisma client factory for services.
+- Seed data for the deterministic local user, default categories, and default EUR budgets.
+
+Focused commands:
+
+```bash
+pnpm --filter @trackx/db prisma validate
+pnpm --filter @trackx/db test
+pnpm --filter @trackx/db typecheck
+pnpm db:validate
+pnpm db:generate
+pnpm db:migrate
+pnpm db:seed
+```
+
+The local database uses the `postgres` Docker Compose service and `DATABASE_URL` from `.env`.
+
+### `@trackx/parser`
+
+Status: implemented in Slice 5.
+
+Ownership:
+
+- Fastify parser service with `GET /health` and `POST /parse-transaction`.
+- OpenAI structured-output parser for natural-language finance messages.
+- Prompt guidance for categories, currencies, income, expenses, split messages, and clarification behavior.
+- Request and response validation through shared Zod schemas.
+
+Focused commands:
+
+```bash
+pnpm --filter @trackx/parser test
+pnpm --filter @trackx/parser typecheck
+pnpm --filter @trackx/parser dev
+pnpm parser:dev
+```
+
+Parser tests mock OpenAI and do not require `OPENAI_API_KEY`. Live parsing requires a real key in `.env`.
+
+### `@trackx/api`
+
+Status: implemented through Slice 8.
+
+Ownership:
+
+- Fastify API service with `GET /health`.
+- Local/Docker API implementation until endpoint behavior is migrated into `apps/web` Route Handlers for Vercel.
+- Manual transaction CRUD routes backed by Prisma repositories.
+- Default local user resolution for local development.
+- Soft delete and undo-last transaction behavior.
+- Read-only budget status and dashboard summary routes.
+- Parser-backed `from-message` route that stores parse events and creates transactions.
+- EUR-first budget totals that count transactions in the same currency as the budget.
+
+Focused commands:
+
+```bash
+pnpm --filter @trackx/api test
+pnpm --filter @trackx/api typecheck
+pnpm --filter @trackx/api dev
+pnpm api:dev
+```
+
+Current endpoints:
+
+```text
+GET    /health
+GET    /transactions
+POST   /transactions
+POST   /transactions/from-message
+PATCH  /transactions/:id
+DELETE /transactions/:id
+POST   /transactions/undo-last
+GET    /budgets
+GET    /budgets/status?period=week|month
+GET    /dashboard/week
+GET    /dashboard/month
+```
+
+`POST /transactions/from-message` calls the parser service, stores a parse event, creates transactions when parsing succeeds, and returns simple Telegram-friendly feedback. Clarification responses create no transactions.
+
+Budget notes:
+
+- Budget periods use the user's timezone.
+- Soft-deleted transactions are excluded.
+- Income is excluded from expense budgets and included in month cashflow.
+- Exchange-rate conversion is not active yet; non-matching currencies are not guessed into budget totals.
+
+### `@trackx/bot`
+
+Status: implemented in Slice 9.
+
+Ownership:
+
+- Telegram bot runtime.
+- Allowlist access control.
+- Normal text forwarding to API `POST /transactions/from-message`.
+- Commands for help, undo, weekly budgets, and month summary.
+
+Focused commands:
+
+```bash
+pnpm --filter @trackx/bot test
+pnpm --filter @trackx/bot typecheck
+pnpm --filter @trackx/bot dev
+pnpm bot:dev
+```
+
+Telegram setup notes live in [docs/telegram-setup.md](./docs/telegram-setup.md).
+
+### `@trackx/webhook`
+
+Status: implemented for Cloudflare Telegram webhooks.
+
+Ownership:
+
+- Cloudflare Worker entrypoint for Telegram webhook updates.
+- Allowlist checks and command handling aligned with `apps/bot`.
+- Calls the TrackX API and replies through Telegram `sendMessage`.
+
+Focused commands:
+
+```bash
+pnpm --filter @trackx/webhook test
+pnpm --filter @trackx/webhook typecheck
+pnpm --filter @trackx/webhook dev
+pnpm webhook:dev
+pnpm --filter @trackx/webhook deploy
+```
+
+Cloudflare setup notes live in [docs/cloudflare-webhook.md](./docs/cloudflare-webhook.md).
+
+### `@trackx/web`
+
+Status: implemented in Slice 10.
+
+Ownership:
+
+- Next.js App Router dashboard.
+- Server-side API reads for month/week summaries, budgets, and transactions.
+- Server actions for transaction edit and delete.
+- Dense operational UI for review and correction workflows.
+
+Focused commands:
+
+```bash
+pnpm --filter @trackx/web typecheck
+pnpm --filter @trackx/web build
+pnpm --filter @trackx/web dev
+pnpm web:dev
+```
+
+The web app reads from `WEB_API_BASE_URL`, defaulting to `http://localhost:4001` in local development. In Docker, it uses `http://api:4001`.
+
+### `@trackx/worker`
+
+Status: implemented in Slice 11.
+
+Ownership:
+
+- BullMQ worker placeholder connected to Redis.
+- Placeholder handlers for weekly and monthly summary jobs.
+- Scheduled jobs disabled by default unless `WORKER_ENABLE_SCHEDULES=true`.
+- Local learning/experimentation path only; production should use Vercel Cron routes if scheduled summaries are added.
+
+Focused commands:
+
+```bash
+pnpm --filter @trackx/worker test
+pnpm --filter @trackx/worker typecheck
+pnpm --filter @trackx/worker dev
+pnpm worker:dev
+```
+
+The worker uses `REDIS_URL` from `.env`. In Docker, it uses `redis://redis:6379`.
+
+## Environment Variables
+
+Variables parsed by `@trackx/config`:
+
+| Variable                    | Purpose                                        |
+| --------------------------- | ---------------------------------------------- |
+| `DATABASE_URL`              | Postgres connection string                     |
+| `REDIS_URL`                 | Redis connection string                        |
+| `OPENAI_API_KEY`            | Optional parser service OpenAI key             |
+| `OPENAI_MODEL`              | OpenAI model used by parser service            |
+| `PARSER_PORT`               | Parser service port                            |
+| `PARSER_BASE_URL`           | Parser service base URL                        |
+| `API_PORT`                  | API service port                               |
+| `API_BASE_URL`              | API service base URL                           |
+| `TELEGRAM_BOT_TOKEN`        | Telegram bot token                             |
+| `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated allowlist of Telegram user IDs |
+| `BOT_PORT`                  | Bot service port                               |
+| `DEFAULT_TIMEZONE`          | Default user timezone                          |
+| `DEFAULT_CURRENCY`          | Default user currency                          |
+
+App-specific variables read outside `@trackx/config`:
+
+| Variable                  | Purpose                                         |
+| ------------------------- | ----------------------------------------------- |
+| `WEB_API_BASE_URL`        | API base URL used by the web dashboard          |
+| `WORKER_ENABLE_SCHEDULES` | Enable BullMQ cron schedules (`true` / `false`) |
+
+Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS`, `API_BASE_URL`, optional `TELEGRAM_WEBHOOK_SECRET`). See [docs/cloudflare-webhook.md](./docs/cloudflare-webhook.md).
+
+Production scheduled summaries, if added, should use Vercel Cron HTTP routes rather than Redis/BullMQ.
+
+Docker stack secrets are passed through shell exports such as `TRACKX_OPENAI_API_KEY` and `TRACKX_TELEGRAM_BOT_TOKEN`. See [docs/local-development.md](./docs/local-development.md).
+
+## Troubleshooting
+
+### Dashboard shows "Dashboard unavailable"
+
+- Confirm the API is running: `curl http://localhost:4001/health`
+- Confirm `WEB_API_BASE_URL` points to the API (`http://localhost:4001` locally)
+- Migrate and seed Postgres: `pnpm db:migrate && pnpm db:seed`
+
+### `POST /transactions/from-message` fails or asks for clarification
+
+- Confirm the parser is running: `curl http://localhost:4002/health`
+- Add a real `OPENAI_API_KEY` to `.env` for live parsing
+- Include currency in the message, for example `spent 15 eur on food`
+
+### Bot does not respond
+
+- Set `TELEGRAM_BOT_TOKEN` and your numeric id in `TELEGRAM_ALLOWED_USER_IDS`
+- An empty allowlist denies everyone by design
+- Start API and parser before `pnpm bot:dev`
+
+### Worker exits immediately
+
+- Start Redis: `pnpm infra:up`
+- Check `REDIS_URL` is a valid URL, default `redis://localhost:6379`
+
+### Docker stack parser or bot lacks secrets
+
+- Export `TRACKX_OPENAI_API_KEY`, `TRACKX_TELEGRAM_BOT_TOKEN`, and `TRACKX_TELEGRAM_ALLOWED_USER_IDS` in your shell before `pnpm stack:up`
+- Do not commit real secrets to the repo
+
+## MVP Status
+
+The local MVP path is complete when:
+
+1. `pnpm mvp:check` passes
+2. `pnpm db:migrate` and `pnpm db:seed` succeed against local Postgres
+3. A sample expense logged through `POST /transactions/from-message` appears on the dashboard
+
+See [PLAN.md](./PLAN.md) for the full implementation history.
+
+## Production Direction
+
+The next production-prep slice should migrate API behavior from `services/api` into Next.js Route Handlers under `apps/web/src/app/api`. After that, Vercel can host both dashboard and API, Supabase can provide Postgres, and Cloudflare can receive Telegram webhooks. Dashboard auth/protection should be decided before public deployment.
+
+## Docker Stack
+
+Docker Compose can run local infrastructure only or the fuller local stack.
+
+Infrastructure only:
+
+```bash
+pnpm infra:up
+```
+
+Full stack:
+
+```bash
+pnpm stack:build
+pnpm stack:up
+```
+
+For live parser calls in Docker, export `TRACKX_OPENAI_API_KEY` in your shell before `pnpm stack:up`. Keep real secrets out of committed files.
+
+The full stack runs Postgres, Redis, parser, API, bot, web, and worker containers. Details live in [docs/local-development.md](./docs/local-development.md).

@@ -1,0 +1,123 @@
+name: trackx
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: trackx-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: trackx
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d trackx"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:8-alpine
+    container_name: trackx-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  parser:
+    build:
+      context: .
+      dockerfile: services/parser/Dockerfile
+    container_name: trackx-parser
+    restart: unless-stopped
+    environment:
+      OPENAI_API_KEY: "${TRACKX_OPENAI_API_KEY:-}"
+      OPENAI_MODEL: "${OPENAI_MODEL:-gpt-4o-mini}"
+      PARSER_PORT: "4002"
+      DEFAULT_TIMEZONE: "Europe/Lisbon"
+      DEFAULT_CURRENCY: "EUR"
+    ports:
+      - "4002:4002"
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    container_name: trackx-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/trackx"
+      REDIS_URL: "redis://redis:6379"
+      PARSER_BASE_URL: "http://parser:4002"
+      API_PORT: "4001"
+      API_BASE_URL: "http://localhost:4001"
+      DEFAULT_TIMEZONE: "Europe/Lisbon"
+      DEFAULT_CURRENCY: "EUR"
+    ports:
+      - "4001:4001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      parser:
+        condition: service_started
+
+  bot:
+    build:
+      context: .
+      dockerfile: apps/bot/Dockerfile
+    container_name: trackx-bot
+    restart: unless-stopped
+    environment:
+      TELEGRAM_BOT_TOKEN: "${TRACKX_TELEGRAM_BOT_TOKEN:-}"
+      TELEGRAM_ALLOWED_USER_IDS: "${TRACKX_TELEGRAM_ALLOWED_USER_IDS:-}"
+      API_BASE_URL: "http://api:4001"
+      BOT_PORT: "4003"
+      DEFAULT_TIMEZONE: "Europe/Lisbon"
+      DEFAULT_CURRENCY: "EUR"
+    ports:
+      - "4003:4003"
+    depends_on:
+      api:
+        condition: service_started
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: trackx-web
+    restart: unless-stopped
+    environment:
+      WEB_API_BASE_URL: "http://api:4001"
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_started
+
+  worker:
+    build:
+      context: .
+      dockerfile: services/worker/Dockerfile
+    container_name: trackx-worker
+    restart: unless-stopped
+    environment:
+      REDIS_URL: "redis://redis:6379"
+      WORKER_ENABLE_SCHEDULES: "false"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:

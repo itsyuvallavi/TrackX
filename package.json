@@ -1,0 +1,46 @@
+{
+  "name": "trackx",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Telegram-first AI expense tracker monorepo.",
+  "packageManager": "pnpm@10.18.3",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck",
+    "lint": "turbo lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "mvp:check": "pnpm typecheck && pnpm test && pnpm format:check",
+    "api:dev": "pnpm --filter @trackx/api dev",
+    "bot:dev": "pnpm --filter @trackx/bot dev",
+    "web:dev": "pnpm --filter @trackx/web dev",
+    "worker:dev": "pnpm --filter @trackx/worker dev",
+    "webhook:dev": "pnpm --filter @trackx/webhook dev",
+    "parser:dev": "pnpm --filter @trackx/parser dev",
+    "db:validate": "pnpm --filter @trackx/db prisma validate",
+    "db:generate": "pnpm --filter @trackx/db prisma generate",
+    "db:migrate": "pnpm --filter @trackx/db prisma migrate dev --name init",
+    "db:seed": "pnpm --filter @trackx/db db:seed",
+    "db:studio": "pnpm --filter @trackx/db prisma studio",
+    "infra:config": "docker compose config",
+    "infra:up": "docker compose up -d postgres redis",
+    "infra:down": "docker compose down",
+    "infra:logs": "docker compose logs -f postgres redis",
+    "stack:build": "docker compose build api parser bot web worker",
+    "stack:config": "docker compose config",
+    "stack:up": "docker compose up -d postgres redis parser api bot web worker",
+    "stack:down": "docker compose down",
+    "stack:logs": "docker compose logs -f postgres redis parser api bot web worker"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "turbo": "^2.6.0",
+    "typescript": "^5.9.3"
+  }
+}

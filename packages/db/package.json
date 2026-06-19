@@ -1,0 +1,33 @@
+{
+  "name": "@trackx/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Prisma schema, client, and seed data for TrackX.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm --filter @trackx/shared build && pnpm run generate && tsc -p tsconfig.json",
+    "db:seed": "tsx prisma/seed.ts",
+    "generate": "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/trackx prisma generate",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "prisma": "prisma",
+    "test": "pnpm --filter @trackx/shared build && vitest run",
+    "typecheck": "pnpm --filter @trackx/shared build && pnpm run generate && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.2",
+    "@trackx/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "prisma": "^6.16.2",
+    "tsx": "^4.20.5",
+    "vitest": "^4.0.0"
+  }
+}

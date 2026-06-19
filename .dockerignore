@@ -1,0 +1,14 @@
+# Owner: root. Docker build exclusions for TrackX local service images.
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.turbo/
+**/.turbo/
+.env
+.env.*
+!.env.example
+.git/
+.DS_Store
+coverage/
+*.log

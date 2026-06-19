@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-surface-muted text-ink antialiased;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-lg border border-surface-border bg-surface shadow-sm;
+  }
+
+  .panel-header {
+    @apply border-b border-surface-border px-4 py-3 text-sm font-semibold text-ink;
+  }
+
+  .panel-body {
+    @apply p-4;
+  }
+
+  .stat-value {
+    @apply text-2xl font-semibold tabular-nums text-ink;
+  }
+
+  .stat-label {
+    @apply text-xs font-medium uppercase tracking-wide text-ink-muted;
+  }
+
+  .data-table {
+    @apply w-full text-left text-sm;
+  }
+
+  .data-table th {
+    @apply border-b border-surface-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-ink-muted;
+  }
+
+  .data-table td {
+    @apply border-b border-surface-border px-3 py-2 align-middle;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-blue-700;
+  }
+
+  .btn-secondary {
+    @apply btn border border-surface-border bg-surface text-ink hover:bg-surface-muted;
+  }
+
+  .btn-danger {
+    @apply btn bg-danger text-white hover:bg-red-700;
+  }
+
+  .field-label {
+    @apply mb-1 block text-xs font-medium text-ink-muted;
+  }
+
+  .field-input {
+    @apply w-full rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-ink;
+  }
+}

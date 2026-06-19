@@ -1,0 +1,28 @@
+{
+  "name": "@trackx/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Validated environment configuration for TrackX services.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm --filter @trackx/shared build && tsc -p tsconfig.json",
+    "typecheck": "pnpm --filter @trackx/shared build && tsc -p tsconfig.json --noEmit",
+    "test": "pnpm --filter @trackx/shared build && vitest run",
+    "lint": "pnpm --filter @trackx/shared build && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@trackx/shared": "workspace:*",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.0"
+  }
+}
