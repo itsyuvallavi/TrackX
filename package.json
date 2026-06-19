@@ -23,6 +23,7 @@
     "worker:dev": "pnpm --filter @trackx/worker dev",
     "webhook:dev": "pnpm --filter @trackx/webhook dev",
     "parser:dev": "pnpm --filter @trackx/parser dev",
+    "parser:eval": "pnpm --filter @trackx/parser eval",
     "db:validate": "pnpm --filter @trackx/db prisma validate",
     "db:generate": "pnpm --filter @trackx/db prisma generate",
     "db:migrate": "pnpm --filter @trackx/db prisma migrate dev --name init",

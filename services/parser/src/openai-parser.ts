@@ -54,6 +54,7 @@ export async function parseTransactionWithOpenAi(
 ): Promise<ParserResponse> {
   const response = await client.responses.create({
     model: config.model,
+    temperature: 0,
     input: [
       {
         role: "system",

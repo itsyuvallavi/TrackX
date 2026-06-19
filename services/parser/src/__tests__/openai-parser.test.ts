@@ -10,10 +10,14 @@ const config = {
   model: "gpt-4o-mini",
 };
 
-function clientWithOutput(output: unknown): OpenAiResponsesClient {
+function clientWithOutput(
+  output: unknown,
+  onInput?: (input: Record<string, unknown>) => void,
+): OpenAiResponsesClient {
   return {
     responses: {
-      async create() {
+      async create(input) {
+        onInput?.(input);
         return { output_text: JSON.stringify(output) };
       },
     },
@@ -154,6 +158,31 @@ describe("parseTransactionWithOpenAi", () => {
 
     expect(response.needsClarification).toBe(true);
     expect(response.clarifyingQuestion).toContain("amount");
+  });
+
+  it("requests deterministic OpenAI output", async () => {
+    let capturedInput: Record<string, unknown> | null = null;
+
+    await parseTransactionWithOpenAi(
+      { message: "spent 15 eur on food", timezone: "Europe/Lisbon" },
+      config,
+      clientWithOutput(
+        {
+          confidence: 0.9,
+          transactions: [
+            expense(15, "EUR", "Restaurants / Cafes / Fun", "food", null),
+          ],
+          needsClarification: false,
+          clarifyingQuestion: null,
+          parser: "openai",
+        },
+        (input) => {
+          capturedInput = input;
+        },
+      ),
+    );
+
+    expect(capturedInput).toMatchObject({ temperature: 0 });
   });
 });
 

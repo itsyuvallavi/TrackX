@@ -258,9 +258,13 @@ pnpm --filter @trackx/parser test
 pnpm --filter @trackx/parser typecheck
 pnpm --filter @trackx/parser dev
 pnpm parser:dev
+pnpm parser:eval
+pnpm parser:eval -- --suite=new
 ```
 
 Parser tests mock OpenAI and do not require `OPENAI_API_KEY`. Live parsing requires a real key in `.env`.
+
+`pnpm parser:eval` runs the baseline 100-message dogfood suite against the real OpenAI parser and checks product-critical fields. Use `pnpm parser:eval -- --suite=new` for the fresh anti-overfit suite. Live eval is not part of `pnpm mvp:check` because it requires a paid model and can vary over time.
 
 ### `@trackx/api`
 
