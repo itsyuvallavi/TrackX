@@ -44,6 +44,7 @@ Production target:
 Current local implementation:
 
 - `services/api` — Fastify service used by the local MVP and Docker stack until the endpoint behavior is migrated into `apps/web`.
+- `packages/api-core` — route-independent API logic shared by the Fastify adapter and future Vercel Route Handlers.
 
 It owns:
 
@@ -308,6 +309,7 @@ Vercel Cron
 | `services/api`         | Fastify API               | Local/Docker stepping stone until migrated             |
 | `services/parser`      | OpenAI parsing            | Inside Vercel API target; local service until migrated |
 | `services/worker`      | BullMQ worker placeholder | Local experiment only, not prod                        |
+| `packages/api-core`    | API domain logic          | Bundled into local API and Vercel API routes           |
 | `packages/db`          | Prisma / schema           | Migrations against **Supabase**                        |
 | `packages/shared`      | Shared types/schemas      | Bundled into all deploys                               |
 | `packages/config`      | Env parsing               | Used by Node services locally                          |

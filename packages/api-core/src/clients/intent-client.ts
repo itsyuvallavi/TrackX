@@ -1,4 +1,4 @@
-// Owner: services/api. OpenAI client boundary for safe transaction edit intents.
+// Owner: packages/api-core. OpenAI client boundary for safe transaction edit intents.
 import {
   CATEGORY_NAMES,
   TransactionIntentRequestSchema,

@@ -1,4 +1,4 @@
-// Owner: services/api. Transaction CRUD orchestration for API routes.
+// Owner: packages/api-core. Transaction CRUD orchestration for API routes.
 import { z } from "zod";
 import {
   CategoryNameSchema,

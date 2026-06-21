@@ -4,7 +4,7 @@ import type {
   PendingClarificationRepository,
   PendingClarificationScope,
   SavePendingClarificationInput,
-} from "../repositories/pending-clarifications.js";
+} from "@trackx/api-core";
 
 export function createInMemoryPendingClarificationRepository(
   records: PendingClarificationRecord[],

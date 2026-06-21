@@ -1,4 +1,4 @@
-// Owner: services/api. Budget repository boundary and Prisma implementation.
+// Owner: packages/api-core. Budget repository boundary and Prisma implementation.
 import {
   CategoryNameSchema,
   type BudgetPeriod,

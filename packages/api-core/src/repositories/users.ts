@@ -1,4 +1,4 @@
-// Owner: services/api. User repository boundary for API transaction flows.
+// Owner: packages/api-core. User repository boundary for API transaction flows.
 import {
   DEFAULT_LOCAL_TIMEZONE,
   DEFAULT_LOCAL_USER_EMAIL,

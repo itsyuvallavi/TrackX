@@ -1,4 +1,4 @@
-// Owner: services/api. Safe natural-language edit handling before parsing.
+// Owner: packages/api-core. Safe natural-language edit handling before parsing.
 import type {
   CategoryName,
   Currency,

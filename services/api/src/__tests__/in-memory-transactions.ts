@@ -1,15 +1,13 @@
 // Owner: services/api. In-memory transaction repository helpers for API tests.
-import type { UserRepository } from "../repositories/users.js";
 import {
+  type CreateTransactionRecordInput,
   createTransactionService,
+  type TransactionRecord,
+  type TransactionRepository,
   type TransactionService,
-} from "../services/transaction-service.js";
-import type {
-  CreateTransactionRecordInput,
-  TransactionRecord,
-  TransactionRepository,
-  UpdateTransactionRecordInput,
-} from "../repositories/transactions.js";
+  type UpdateTransactionRecordInput,
+  type UserRepository,
+} from "@trackx/api-core";
 
 export const defaultUserId = "00000000-0000-4000-8000-000000000001";
 

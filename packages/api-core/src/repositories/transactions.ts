@@ -1,4 +1,4 @@
-// Owner: services/api. Transaction repository boundary and Prisma implementation.
+// Owner: packages/api-core. Transaction repository boundary and Prisma implementation.
 import type {
   CategoryName,
   Currency,

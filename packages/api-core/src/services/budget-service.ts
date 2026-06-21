@@ -1,4 +1,4 @@
-// Owner: services/api. Budget status and dashboard summary orchestration.
+// Owner: packages/api-core. Budget status and dashboard summary orchestration.
 import { z } from "zod";
 import {
   BudgetPeriodSchema,

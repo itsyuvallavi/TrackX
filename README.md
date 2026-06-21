@@ -79,6 +79,7 @@ services/
   worker/              BullMQ worker placeholder (local experiment, not production default)
 
 packages/
+  api-core/            Route-independent API clients, repositories, and services
   config/              Shared environment parsing
   db/                  Prisma schema, migrations, seed data, client
   shared/              Zod schemas, types, category rules, budget helpers
@@ -257,6 +258,24 @@ pnpm db:migrate:deploy
 pnpm db:seed
 ```
 
+### `@trackx/api-core`
+
+Status: extracted during production-prep API migration.
+
+Ownership:
+
+- Route-independent API clients, repositories, and services.
+- Transaction CRUD, budget/dashboard orchestration, from-message flow, pending clarification handling, and safe edit intent logic.
+- Reusable boundary for the current Fastify service and future Next.js Route Handlers.
+
+Focused commands:
+
+```bash
+pnpm --filter @trackx/api-core test
+pnpm --filter @trackx/api-core typecheck
+pnpm --filter @trackx/api-core build
+```
+
 ### `@trackx/parser`
 
 Status: implemented in Slice 5.
@@ -290,8 +309,8 @@ Status: implemented through Slice 8.
 Ownership:
 
 - Fastify API service with `GET /health`.
-- Local/Docker API implementation until endpoint behavior is migrated into `apps/web` Route Handlers for Vercel.
-- Manual transaction CRUD routes backed by Prisma repositories.
+- Local/Docker HTTP adapter until endpoint behavior is migrated into `apps/web` Route Handlers for Vercel.
+- Manual transaction CRUD routes backed by `@trackx/api-core`.
 - Default local user resolution for local development.
 - Soft delete and undo-last transaction behavior.
 - Safe latest-transaction category correction for Telegram command flows.

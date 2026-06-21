@@ -1,4 +1,4 @@
-// Owner: services/api. Parse event repository boundary and Prisma implementation.
+// Owner: packages/api-core. Parse event repository boundary and Prisma implementation.
 import type { ParserResponse } from "@trackx/shared";
 import type { PrismaClient } from "@trackx/db";
 

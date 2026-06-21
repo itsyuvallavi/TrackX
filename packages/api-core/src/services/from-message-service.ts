@@ -1,4 +1,4 @@
-// Owner: services/api. Natural-language message to stored transaction flow.
+// Owner: packages/api-core. Natural-language message to stored transaction flow.
 import { z } from "zod";
 import {
   CurrencySchema,

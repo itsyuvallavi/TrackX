@@ -1,18 +1,16 @@
 // Owner: services/api. API transaction route tests with in-memory repositories.
 import { describe, expect, it } from "vitest";
 import type { ApiConfig } from "@trackx/config";
-import { buildApiServer } from "../server.js";
 import {
+  type CreateTransactionRecordInput,
   createTransactionService,
+  type TransactionRecord,
+  type TransactionRepository,
   type TransactionService,
-} from "../services/transaction-service.js";
-import type { UserRepository } from "../repositories/users.js";
-import type {
-  CreateTransactionRecordInput,
-  TransactionRecord,
-  TransactionRepository,
-  UpdateTransactionRecordInput,
-} from "../repositories/transactions.js";
+  type UpdateTransactionRecordInput,
+  type UserRepository,
+} from "@trackx/api-core";
+import { buildApiServer } from "../server.js";
 
 const defaultUserId = "00000000-0000-4000-8000-000000000001";
 const config: ApiConfig = {

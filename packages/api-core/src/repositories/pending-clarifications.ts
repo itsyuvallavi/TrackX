@@ -1,4 +1,4 @@
-// Owner: services/api. Pending clarification repository for durable parser follow-ups.
+// Owner: packages/api-core. Pending clarification repository for durable parser follow-ups.
 import type { PrismaClient } from "@trackx/db";
 
 export type PendingClarificationRecord = {

@@ -1,19 +1,20 @@
 # TrackX Architecture
 
-TrackX is a TypeScript monorepo for a Telegram-first expense tracker with a web dashboard. Services share contracts through `@trackx/shared` and read environment values through `@trackx/config` where applicable.
+TrackX is a TypeScript monorepo for a Telegram-first expense tracker with a web dashboard. Services share contracts through `@trackx/shared`, reuse API domain logic through `@trackx/api-core`, and read environment values through `@trackx/config` where applicable.
 
 ## Service Map
 
-| Component     | Path              | Responsibility                                                             |
-| ------------- | ----------------- | -------------------------------------------------------------------------- |
-| Web dashboard | `apps/web`        | Read API summaries and transactions; edit/delete via server actions        |
-| Telegram bot  | `apps/bot`        | Allowlisted Telegram entrypoint; forwards text and commands to API         |
-| API           | `services/api`    | Main backend boundary; transactions, budgets, dashboard, from-message flow |
-| Parser        | `services/parser` | OpenAI structured-output parsing for natural-language finance messages     |
-| Worker        | `services/worker` | Local BullMQ placeholder for queue learning; not production default        |
-| Shared        | `packages/shared` | Zod schemas, category rules, budget helpers                                |
-| Config        | `packages/config` | Validated env parsing for API, parser, bot, worker                         |
-| Database      | `packages/db`     | Prisma schema, migrations, seed data, client                               |
+| Component     | Path                | Responsibility                                                             |
+| ------------- | ------------------- | -------------------------------------------------------------------------- |
+| Web dashboard | `apps/web`          | Read API summaries and transactions; edit/delete via server actions        |
+| Telegram bot  | `apps/bot`          | Allowlisted Telegram entrypoint; forwards text and commands to API         |
+| API           | `services/api`      | Main backend boundary; transactions, budgets, dashboard, from-message flow |
+| Parser        | `services/parser`   | OpenAI structured-output parsing for natural-language finance messages     |
+| Worker        | `services/worker`   | Local BullMQ placeholder for queue learning; not production default        |
+| API Core      | `packages/api-core` | Route-independent API clients, repositories, and services                  |
+| Shared        | `packages/shared`   | Zod schemas, category rules, budget helpers                                |
+| Config        | `packages/config`   | Validated env parsing for API, parser, bot, worker                         |
+| Database      | `packages/db`       | Prisma schema, migrations, seed data, client                               |
 
 Postgres is the source of truth for users, transactions, budgets, parse events,
 and pending clarification state. Redis backs BullMQ job state only for the local
@@ -65,7 +66,8 @@ Browser at apps/web
   -> GET /dashboard/month
   -> GET /dashboard/week
   -> GET /transactions
-  -> services/api reads Postgres through packages/db
+  -> services/api adapter calls @trackx/api-core
+  -> @trackx/api-core reads Postgres through packages/db
   -> dashboard renders summaries, budgets, recent transactions
 ```
 
@@ -98,6 +100,16 @@ For production, prefer Vercel Cron routes for scheduled summaries instead of a 2
 - Canonical categories, currencies, and deterministic category rules
 
 Services may transform data internally, but route inputs and outputs should use shared schemas.
+
+`@trackx/api-core` owns route-independent API behavior:
+
+- Parser and intent clients
+- Prisma repository boundaries
+- Transaction, budget, dashboard, from-message, and clarification services
+
+`services/api` is now the local Fastify adapter around this package. The Vercel
+migration should add Next.js Route Handlers that call the same package instead
+of duplicating business logic.
 
 `@trackx/config` owns env parsing for runtime services. Two web/worker vars are read directly today:
 

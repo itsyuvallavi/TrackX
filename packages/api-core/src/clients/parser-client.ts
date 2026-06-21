@@ -1,4 +1,4 @@
-// Owner: services/api. HTTP client boundary for the parser service.
+// Owner: packages/api-core. HTTP client boundary for the parser service.
 import {
   ParserRequestSchema,
   ParserResponseSchema,

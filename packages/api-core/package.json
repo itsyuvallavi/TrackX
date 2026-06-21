@@ -1,0 +1,30 @@
+{
+  "name": "@trackx/api-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Route-independent API services, repositories, and clients for TrackX.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm --filter @trackx/db build && pnpm --filter @trackx/shared build && tsc -p tsconfig.json",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "typecheck": "pnpm --filter @trackx/db build && pnpm --filter @trackx/shared build && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@trackx/db": "workspace:*",
+    "@trackx/shared": "workspace:*",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "vitest": "^4.0.0"
+  }
+}

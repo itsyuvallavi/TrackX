@@ -2,12 +2,12 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { ZodError } from "zod";
 import {
+  ApiNotFoundError,
   BudgetListQuerySchema,
   BudgetStatusQuerySchema,
+  UserQuerySchema,
   type BudgetService,
-} from "../services/budget-service.js";
-import { ApiNotFoundError } from "../services/transaction-service.js";
-import { UserQuerySchema } from "../services/transaction-service.js";
+} from "@trackx/api-core";
 
 export async function registerBudgetRoutes(
   server: FastifyInstance,

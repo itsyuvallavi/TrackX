@@ -5,18 +5,16 @@ import {
   ApiCreateTransactionSchema,
   ApiNotFoundError,
   ApiUpdateTransactionSchema,
+  CategoryNotFoundError,
+  FromMessageSchema,
+  ParserClientError,
   TransactionParamsSchema,
   UndoLastSchema,
   UpdateLastCategorySchema,
   UserQuerySchema,
-  type TransactionService,
-} from "../services/transaction-service.js";
-import {
-  FromMessageSchema,
   type FromMessageService,
-} from "../services/from-message-service.js";
-import { CategoryNotFoundError } from "../repositories/transactions.js";
-import { ParserClientError } from "../clients/parser-client.js";
+  type TransactionService,
+} from "@trackx/api-core";
 
 export async function registerTransactionRoutes(
   server: FastifyInstance,

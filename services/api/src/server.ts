@@ -2,35 +2,27 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import type { ApiConfig } from "@trackx/config";
 import { createPrismaClient, type PrismaClient } from "@trackx/db";
-import { createHttpParserClient } from "./clients/parser-client.js";
-import { createPrismaBudgetRepository } from "./repositories/budgets.js";
-import { createPrismaParseEventRepository } from "./repositories/parse-events.js";
-import { createPrismaPendingClarificationRepository } from "./repositories/pending-clarifications.js";
-import { createPrismaTransactionRepository } from "./repositories/transactions.js";
-import { createPrismaUserRepository } from "./repositories/users.js";
+import {
+  createBudgetService,
+  createFromMessageService,
+  createHttpParserClient,
+  createMessageIntentService,
+  createNoopTransactionIntentClient,
+  createOpenAiTransactionIntentClient,
+  createPrismaBudgetRepository,
+  createPrismaParseEventRepository,
+  createPrismaPendingClarificationRepository,
+  createPrismaTransactionRepository,
+  createPrismaUserRepository,
+  createTransactionService,
+  type BudgetService,
+  type FromMessageService,
+  type MessageIntentService,
+  type TransactionService,
+} from "@trackx/api-core";
 import { registerBudgetRoutes } from "./routes/budgets.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerTransactionRoutes } from "./routes/transactions.js";
-import {
-  createNoopTransactionIntentClient,
-  createOpenAiTransactionIntentClient,
-} from "./clients/intent-client.js";
-import {
-  createBudgetService,
-  type BudgetService,
-} from "./services/budget-service.js";
-import {
-  createFromMessageService,
-  type FromMessageService,
-} from "./services/from-message-service.js";
-import {
-  createMessageIntentService,
-  type MessageIntentService,
-} from "./services/message-intent-service.js";
-import {
-  createTransactionService,
-  type TransactionService,
-} from "./services/transaction-service.js";
 
 export type BuildApiServerOptions = {
   config: ApiConfig;

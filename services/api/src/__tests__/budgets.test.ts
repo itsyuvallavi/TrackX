@@ -2,18 +2,16 @@
 import { describe, expect, it } from "vitest";
 import type { ApiConfig } from "@trackx/config";
 import type { BudgetPeriod, CategoryName, Currency } from "@trackx/shared";
-import { buildApiServer } from "../server.js";
-import type { UserRepository } from "../repositories/users.js";
 import {
   createBudgetService,
+  type BudgetRecord,
+  type BudgetRepository,
   type BudgetService,
-} from "../services/budget-service.js";
-import type {
-  BudgetRecord,
-  BudgetRepository,
-  BudgetTotalsInput,
-  TransactionTotals,
-} from "../repositories/budgets.js";
+  type BudgetTotalsInput,
+  type TransactionTotals,
+  type UserRepository,
+} from "@trackx/api-core";
+import { buildApiServer } from "../server.js";
 
 const defaultUserId = "00000000-0000-4000-8000-000000000001";
 const config: ApiConfig = {
