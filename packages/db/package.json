@@ -15,9 +15,10 @@
   "scripts": {
     "build": "pnpm --filter @trackx/shared build && pnpm run generate && tsc -p tsconfig.json",
     "db:seed": "tsx prisma/seed.ts",
-    "generate": "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/trackx prisma generate",
+    "generate": "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/trackx DIRECT_URL=postgresql://postgres:postgres@localhost:5432/trackx prisma generate",
     "lint": "tsc -p tsconfig.json --noEmit",
     "prisma": "prisma",
+    "prisma:local": "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/trackx DIRECT_URL=postgresql://postgres:postgres@localhost:5432/trackx prisma",
     "test": "pnpm --filter @trackx/shared build && vitest run",
     "typecheck": "pnpm --filter @trackx/shared build && pnpm run generate && tsc -p tsconfig.json --noEmit"
   },

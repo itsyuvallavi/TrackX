@@ -235,10 +235,27 @@ pnpm --filter @trackx/db typecheck
 pnpm db:validate
 pnpm db:generate
 pnpm db:migrate
+pnpm db:migrate:status
+pnpm db:migrate:deploy
 pnpm db:seed
 ```
 
-The local database uses the `postgres` Docker Compose service and `DATABASE_URL` from `.env`.
+The local database uses the `postgres` Docker Compose service. For local Docker,
+`DATABASE_URL` and `DIRECT_URL` can both point at
+`postgresql://postgres:postgres@localhost:5432/trackx`.
+
+For Supabase/Vercel, use two URLs:
+
+- `DATABASE_URL`: Supabase transaction pooler URL for runtime/serverless queries.
+- `DIRECT_URL`: Supabase session/direct URL for Prisma migrations.
+
+Hosted database setup:
+
+```bash
+pnpm db:migrate:status
+pnpm db:migrate:deploy
+pnpm db:seed
+```
 
 ### `@trackx/parser`
 
@@ -410,11 +427,12 @@ The worker uses `REDIS_URL` from `.env`. In Docker, it uses `redis://redis:6379`
 
 ## Environment Variables
 
-Variables parsed by `@trackx/config`:
+Variables used by TrackX services and tooling:
 
 | Variable                    | Purpose                                            |
 | --------------------------- | -------------------------------------------------- |
 | `DATABASE_URL`              | Postgres connection string                         |
+| `DIRECT_URL`                | Prisma migration connection string                 |
 | `REDIS_URL`                 | Redis connection string                            |
 | `OPENAI_API_KEY`            | Optional OpenAI key for parser and API edit intent |
 | `OPENAI_MODEL`              | OpenAI model used by parser and API edit intent    |

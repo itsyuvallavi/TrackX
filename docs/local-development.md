@@ -42,6 +42,32 @@ pnpm build
 
 Architecture overview: [architecture.md](./architecture.md)
 
+## Database URLs
+
+TrackX uses Prisma. Prisma has two database URL roles:
+
+- `DATABASE_URL`: runtime application queries.
+- `DIRECT_URL`: migration/admin connection.
+
+For local Docker Postgres, both can use the same value:
+
+```bash
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/trackx"
+DIRECT_URL="postgresql://postgres:postgres@localhost:5432/trackx"
+```
+
+For Supabase production, use the transaction pooler URL for `DATABASE_URL` and
+the session/direct URL for `DIRECT_URL`. Keep both values in local `.env` and in
+Vercel Project Environment Variables; never commit real database passwords.
+
+After setting hosted Supabase URLs, deploy migrations and seed the database:
+
+```bash
+pnpm db:migrate:status
+pnpm db:migrate:deploy
+pnpm db:seed
+```
+
 ## Infrastructure Only
 
 Use this when you want to run the TypeScript services with `pnpm` on your machine, while Docker runs only Postgres and Redis.
@@ -187,5 +213,6 @@ For Docker stack runs, export `TRACKX_TELEGRAM_BOT_TOKEN` and `TRACKX_TELEGRAM_A
 | Bot silent                 | Set token and allowlist; start API and parser first                        |
 | Worker exits               | Run `pnpm infra:up`; verify `REDIS_URL`                                    |
 | Docker parser/bot inactive | Export `TRACKX_*` secrets before `pnpm stack:up`                           |
+| Prisma directUrl error     | Add `DIRECT_URL` to `.env` or use the local `pnpm db:*` wrapper scripts    |
 
 More detail lives in the README troubleshooting section.

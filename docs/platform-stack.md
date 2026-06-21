@@ -135,7 +135,7 @@ Source of truth for:
 ### Why Supabase
 
 - Managed Postgres with a generous free tier
-- Works with existing Prisma setup (`DATABASE_URL` only changes)
+- Works with existing Prisma setup (`DATABASE_URL` plus Prisma `DIRECT_URL`)
 - No need to run Postgres in Docker in production
 
 ### Who talks to it
@@ -144,9 +144,22 @@ Source of truth for:
 
 ### Keys
 
-| Variable       | Where                                                                             |
-| -------------- | --------------------------------------------------------------------------------- |
-| `DATABASE_URL` | Vercel env — use Supabase **transaction pooler** connection string for serverless |
+| Variable       | Where                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL` | Vercel env — use Supabase **transaction pooler** URL for serverless runtime queries                 |
+| `DIRECT_URL`   | Vercel env and local shell for Prisma migrations — use Supabase session/direct-style connection URL |
+
+For Prisma with Vercel/serverless, keep runtime queries on the Supabase
+transaction pooler. Use `DIRECT_URL` for migration commands so Prisma can run
+schema changes without transaction-pooler limitations.
+
+Initial hosted setup:
+
+```bash
+pnpm db:migrate:status
+pnpm db:migrate:deploy
+pnpm db:seed
+```
 
 ---
 
@@ -397,7 +410,7 @@ Quick local path: [local-development.md](./local-development.md).
 
 ## Implementation order (recommended)
 
-1. **Supabase** — create project, run Prisma migrate/seed, set `DATABASE_URL` on Vercel
+1. **Supabase** — create project, run Prisma migrate/seed, set `DATABASE_URL` and `DIRECT_URL` on Vercel
 2. **Vercel API migration** — move current `services/api` endpoint behavior into `apps/web/src/app/api`
 3. **Parser** — colocate OpenAI parsing inside Vercel API routes
 4. **Vercel web** — deploy `apps/web`; use same-origin `/api/...`
