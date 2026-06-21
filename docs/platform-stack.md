@@ -158,6 +158,7 @@ schema changes without transaction-pooler limitations.
 Initial hosted setup:
 
 ```bash
+pnpm env:check -- --target=vercel
 pnpm db:migrate:status
 pnpm db:migrate:deploy
 pnpm db:seed
@@ -417,7 +418,7 @@ Quick local path: [local-development.md](./local-development.md).
 ## Implementation order (recommended)
 
 1. **Supabase** — create project, run Prisma migrate/seed, set `DATABASE_URL` and `DIRECT_URL` on Vercel
-2. **Vercel API migration** — added under `apps/web/src/app/api`; keep expanding until parser is colocated
+2. **Vercel API migration** — route handlers exist under `apps/web/src/app/api` and parser-core is colocated
 3. **Parser** — parser-core is colocated inside Vercel API routes
 4. **Vercel web** — deploy `apps/web`; use same-origin `/api/...`
 5. **Cloudflare** — deploy `apps/webhook`, set secrets, register Telegram webhook

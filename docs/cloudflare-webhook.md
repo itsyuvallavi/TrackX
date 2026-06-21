@@ -74,6 +74,7 @@ pnpm --filter @trackx/webhook deploy
 Set secrets in Cloudflare:
 
 ```bash
+pnpm env:check -- --target=cloudflare
 cd apps/webhook
 wrangler secret put TELEGRAM_BOT_TOKEN
 wrangler secret put TELEGRAM_ALLOWED_USER_IDS

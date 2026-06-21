@@ -153,6 +153,7 @@ pnpm mvp:check
 pnpm lint
 pnpm format
 pnpm format:check
+pnpm env:check
 pnpm api:dev
 pnpm bot:dev
 pnpm web:dev
@@ -255,6 +256,7 @@ For Supabase/Vercel, use two URLs:
 Hosted database setup:
 
 ```bash
+pnpm env:check -- --target=vercel
 pnpm db:migrate:status
 pnpm db:migrate:deploy
 pnpm db:seed
@@ -498,6 +500,8 @@ Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELE
 Production scheduled summaries, if added, should use Vercel Cron HTTP routes rather than Redis/BullMQ.
 
 Docker stack secrets are passed through shell exports such as `TRACKX_OPENAI_API_KEY` and `TRACKX_TELEGRAM_BOT_TOKEN`. See [docs/local-development.md](./docs/local-development.md).
+
+Run `pnpm env:check -- --target=local` before local startup and `pnpm env:check -- --target=vercel` before hosted migration/deploy work. The checker reports variable names and readiness only; it does not print secret values.
 
 ## Troubleshooting
 

@@ -17,6 +17,7 @@ pnpm db:seed
 Add `OPENAI_API_KEY` to `.env`, then start services in separate terminals:
 
 ```bash
+pnpm env:check -- --target=local
 pnpm parser:dev
 pnpm api:dev
 pnpm web:dev
@@ -63,6 +64,7 @@ Vercel Project Environment Variables; never commit real database passwords.
 After setting hosted Supabase URLs, deploy migrations and seed the database:
 
 ```bash
+pnpm env:check -- --target=vercel
 pnpm db:migrate:status
 pnpm db:migrate:deploy
 pnpm db:seed
