@@ -6,6 +6,7 @@ import {
   CategoryNotFoundError,
   ParserClientError,
 } from "@trackx/api-core";
+import { ApiUnauthorizedError } from "@/lib/api-route-auth";
 
 export class ApiRouteBadRequestError extends Error {
   constructor(message: string) {
@@ -24,6 +25,10 @@ export function toApiErrorResponse(error: unknown): NextResponse {
 
   if (error instanceof ApiRouteBadRequestError) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  if (error instanceof ApiUnauthorizedError) {
+    return NextResponse.json({ error: error.message }, { status: 401 });
   }
 
   if (error instanceof ApiNotFoundError) {

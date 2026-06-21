@@ -54,12 +54,12 @@ Implemented locally:
 - Prisma/Postgres data model with seed budgets and categories
 - Next.js dashboard for month/week summaries and transaction edit/delete
 - Same-origin Next.js API routes for Vercel deployment
+- Supabase email/password auth for protected dashboard pages and web API routes
 - BullMQ worker placeholder connected to Redis
 - Shared Zod schemas and offline-first unit tests
 
 Deferred after MVP:
 
-- Auth for the web dashboard
 - Bank integrations
 - Sentry and deployment pipelines
 - Live scheduled worker jobs
@@ -229,6 +229,7 @@ Ownership:
 - Prisma schema for users, categories, transactions, budgets, exchange rates, and parse events.
 - Prisma client factory for services.
 - Seed data for the deterministic local user, default categories, and default EUR budgets.
+- Public table RLS enabled for hosted Supabase, with explicit API-only deny policies for `anon`/`authenticated` access.
 
 Focused commands:
 
@@ -430,6 +431,7 @@ Status: implemented in Slice 10.
 Ownership:
 
 - Next.js App Router dashboard.
+- Supabase email/password auth for `/dashboard`, `/transactions`, and protected web API routes.
 - Server-side API reads for month/week summaries, budgets, and transactions.
 - Server actions for transaction edit and delete.
 - Dense operational UI for review and correction workflows.
@@ -443,7 +445,10 @@ pnpm --filter @trackx/web dev
 pnpm web:dev
 ```
 
-The web app reads from `WEB_API_BASE_URL` when it is set, defaulting to `http://localhost:4001` in local development. In Docker, it uses `http://api:4001`. On Vercel, when `WEB_API_BASE_URL` is not set, it uses Vercel's deployment URL plus `/api` so dashboard server fetches hit the same deployment's Route Handlers.
+The web app reads from `WEB_API_BASE_URL` when it is set. When it is unset,
+the app uses same-origin `/api` Route Handlers, which is the default for Vercel
+and the recommended local path while testing dashboard auth. In Docker, set it
+to `http://api:4001` when routing through the Fastify API container.
 
 ### `@trackx/worker`
 
@@ -490,10 +495,13 @@ Variables used by TrackX services and tooling:
 
 App-specific variables read outside `@trackx/config`:
 
-| Variable                  | Purpose                                          |
-| ------------------------- | ------------------------------------------------ |
-| `WEB_API_BASE_URL`        | Optional API base URL override for the dashboard |
-| `WORKER_ENABLE_SCHEDULES` | Enable BullMQ cron schedules (`true` / `false`)  |
+| Variable                               | Purpose                                                   |
+| -------------------------------------- | --------------------------------------------------------- |
+| `WEB_API_BASE_URL`                     | Optional API base URL override for the dashboard          |
+| `NEXT_PUBLIC_SITE_URL`                 | Public app URL for Supabase auth redirects                |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase project URL for dashboard auth                   |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key for dashboard auth sessions |
+| `WORKER_ENABLE_SCHEDULES`              | Enable BullMQ cron schedules (`true` / `false`)           |
 
 Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS`, `API_BASE_URL`, optional `TELEGRAM_WEBHOOK_SECRET`). See [docs/cloudflare-webhook.md](./docs/cloudflare-webhook.md).
 
@@ -507,8 +515,8 @@ Run `pnpm env:check -- --target=local` before local startup and `pnpm env:check 
 
 ### Dashboard shows "Dashboard unavailable"
 
-- Confirm the API is running: `curl http://localhost:4001/health`
-- Confirm `WEB_API_BASE_URL` points to the API (`http://localhost:4001` locally) or is unset on Vercel so same-origin `/api` is used
+- Confirm `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set for dashboard auth
+- Leave `WEB_API_BASE_URL` unset for same-origin `/api`, or point it to a running API such as `http://localhost:4001`
 - Migrate and seed Postgres: `pnpm db:migrate && pnpm db:seed`
 
 ### `POST /transactions/from-message` fails or asks for clarification
@@ -546,7 +554,7 @@ See [PLAN.md](./PLAN.md) for the full implementation history.
 
 ## Production Direction
 
-The Vercel API migration layer now exists under `apps/web/src/app/api` and calls `@trackx/api-core`. Parser behavior has been extracted to `@trackx/parser-core` so Vercel can parse in-process without a separate parser host. Next production-prep work should connect hosted Supabase and decide dashboard auth/protection before public deployment.
+The Vercel API migration layer now exists under `apps/web/src/app/api` and calls `@trackx/api-core`. Parser behavior has been extracted to `@trackx/parser-core` so Vercel can parse in-process without a separate parser host. Hosted Supabase is connected, public table RLS is enabled, and dashboard auth is protected by Supabase email/password sessions.
 
 The Vercel project must be configured as the `apps/web` Next.js app:
 

@@ -2,9 +2,12 @@
 import { AppNav } from "@/components/app-nav";
 import { TransactionsTable } from "@/components/transactions-table";
 import { ApiError, getTransactions } from "@/lib/api";
+import { requireAuthenticatedUser } from "@/lib/auth";
 
 export default async function TransactionsPage() {
   try {
+    await requireAuthenticatedUser();
+
     const transactions = await getTransactions();
 
     return (

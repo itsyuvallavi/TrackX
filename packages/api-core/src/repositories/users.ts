@@ -14,6 +14,10 @@ export type UserRecord = {
 };
 
 export type UserRepository = {
+  ensureAuthUser(input: {
+    authUserId: string;
+    email: string | null;
+  }): Promise<UserRecord>;
   ensureDefaultUser(): Promise<UserRecord>;
   ensureTelegramUser(telegramUserId: string): Promise<UserRecord>;
   findById(userId: string): Promise<UserRecord | null>;
@@ -23,6 +27,26 @@ export function createPrismaUserRepository(
   prisma: PrismaClient,
 ): UserRepository {
   return {
+    async ensureAuthUser(input) {
+      const user = await prisma.user.upsert({
+        where: { id: input.authUserId },
+        create: {
+          id: input.authUserId,
+          email: input.email,
+          defaultCurrency: "EUR",
+          timezone: DEFAULT_LOCAL_TIMEZONE,
+        },
+        update: {
+          email: input.email,
+          defaultCurrency: "EUR",
+          timezone: DEFAULT_LOCAL_TIMEZONE,
+        },
+        select: { id: true, defaultCurrency: true, timezone: true },
+      });
+
+      return user;
+    },
+
     async ensureDefaultUser() {
       const user = await prisma.user.upsert({
         where: { id: DEFAULT_LOCAL_USER_ID },

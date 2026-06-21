@@ -38,6 +38,14 @@ export function AppNav({ currentPath }: AppNavProps) {
               </Link>
             );
           })}
+          <form action="/auth/logout" method="post">
+            <button
+              className="rounded-md px-3 py-2 text-sm font-medium text-ink-muted hover:bg-surface-muted hover:text-ink"
+              type="submit"
+            >
+              Sign out
+            </button>
+          </form>
         </nav>
       </div>
     </header>

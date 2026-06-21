@@ -10,10 +10,13 @@ import {
   getTransactions,
   getWeekDashboard,
 } from "@/lib/api";
+import { requireAuthenticatedUser } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 
 export default async function DashboardPage() {
   try {
+    await requireAuthenticatedUser();
+
     const [monthDashboard, weekDashboard, transactions] = await Promise.all([
       getMonthDashboard(),
       getWeekDashboard(),

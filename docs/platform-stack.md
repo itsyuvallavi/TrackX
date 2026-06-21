@@ -115,18 +115,23 @@ The Vercel project settings should point at the monorepo web app:
 
 ### How it talks to the backend
 
-Current local implementation uses server-side fetch to `WEB_API_BASE_URL`:
+Current implementation uses server-side fetch through the web app:
 
-- Local: `http://localhost:4001`
-- Vercel: if `WEB_API_BASE_URL` is unset, the web app uses Vercel's deployment URL plus `/api`
+- Local default: same-origin `/api` on `http://localhost:3000`
+- Local Docker/Fastify override: set `WEB_API_BASE_URL` to `http://localhost:4001` or `http://api:4001`
+- Vercel default: leave `WEB_API_BASE_URL` unset so dashboard fetches hit the same deployment's Route Handlers
 
-The web app **does not** connect to Supabase directly.
+The web app uses Supabase directly only for Auth session cookies. Business data
+still flows through the API and Prisma.
 
 ### Keys
 
-| Variable           | Where                                                                   |
-| ------------------ | ----------------------------------------------------------------------- |
-| `WEB_API_BASE_URL` | Local/Docker override; leave unset on Vercel for same deployment `/api` |
+| Variable                               | Where                                                                            |
+| -------------------------------------- | -------------------------------------------------------------------------------- |
+| `WEB_API_BASE_URL`                     | Optional local/Docker override; leave unset on Vercel for same deployment `/api` |
+| `NEXT_PUBLIC_SITE_URL`                 | Public app URL used by Supabase email redirects                                  |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase project URL for Auth                                                    |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key for Auth sessions                                  |
 
 ---
 
@@ -141,6 +146,7 @@ The web app **does not** connect to Supabase directly.
 Source of truth for:
 
 - Users, categories, transactions, budgets, parse events
+- Hosted Auth identities, mapped one-to-one into application `users`
 
 ### Why Supabase
 
@@ -151,6 +157,10 @@ Source of truth for:
 ### Who talks to it
 
 **Only the API** (through Prisma). Not Cloudflare, not the web app directly.
+Public table RLS is enabled in hosted Supabase and public table grants are
+revoked from `anon` and `authenticated`. Each public table also has an explicit
+`api_only_no_public_access` deny policy for those roles, so the API remains the
+database boundary.
 
 ### Keys
 
@@ -375,16 +385,16 @@ Never commit: `.env`, `.dev.vars`, tokens, database passwords.
 
 ## What we chose not to do (and why)
 
-| Option                              | Why not (for now)                                                                         |
-| ----------------------------------- | ----------------------------------------------------------------------------------------- |
-| **AWS ECS + RDS 24/7**              | ~$30–80+/month for personal use; valid scale path later                                   |
-| **Telegram polling in prod**        | Requires always-on server; webhooks are cheaper and simpler                               |
-| **Vercel-only for Telegram**        | Possible with webhooks on Vercel; we prefer CF for Telegram interface and token isolation |
-| **Web → Supabase direct**           | Breaks hub model; duplicates logic and security boundaries                                |
-| **Five separate paid hosts**        | Unnecessary cost; API+parser can share Vercel                                             |
-| **Redis/BullMQ in production**      | No queue workload yet; Vercel Cron is enough for scheduled summaries                      |
-| **Live worker cron on day one**     | No user value yet                                                                         |
-| **Bank integrations, auth, Sentry** | Post-MVP                                                                                  |
+| Option                          | Why not (for now)                                                                         |
+| ------------------------------- | ----------------------------------------------------------------------------------------- |
+| **AWS ECS + RDS 24/7**          | ~$30–80+/month for personal use; valid scale path later                                   |
+| **Telegram polling in prod**    | Requires always-on server; webhooks are cheaper and simpler                               |
+| **Vercel-only for Telegram**    | Possible with webhooks on Vercel; we prefer CF for Telegram interface and token isolation |
+| **Web → Supabase direct**       | Breaks hub model; duplicates logic and security boundaries                                |
+| **Five separate paid hosts**    | Unnecessary cost; API+parser can share Vercel                                             |
+| **Redis/BullMQ in production**  | No queue workload yet; Vercel Cron is enough for scheduled summaries                      |
+| **Live worker cron on day one** | No user value yet                                                                         |
+| **Bank integrations, Sentry**   | Post-MVP                                                                                  |
 
 ---
 
@@ -416,6 +426,7 @@ Optional later: Terraform for AWS, ephemeral staging deploy, tear down when done
 | API      | `pnpm api:dev` :4001                              | `apps/web` Route Handlers on Vercel |
 | Parser   | `pnpm parser:dev` :4002                           | Inside Vercel API                   |
 | Web      | `pnpm web:dev` :3000                              | Vercel                              |
+| Auth     | Supabase Auth with local callback URL             | Supabase Auth with Vercel callback  |
 | Telegram | `apps/bot` polling **or** `apps/webhook` + tunnel | Cloudflare Worker                   |
 | Worker   | `pnpm worker:dev` for local BullMQ learning       | Deferred / no prod worker           |
 
@@ -429,8 +440,9 @@ Quick local path: [local-development.md](./local-development.md).
 2. **Vercel API migration** — route handlers exist under `apps/web/src/app/api` and parser-core is colocated
 3. **Parser** — parser-core is colocated inside Vercel API routes
 4. **Vercel web** — deploy `apps/web`; use same-origin `/api/...`
-5. **Cloudflare** — deploy `apps/webhook`, set secrets, register Telegram webhook
-6. **Vercel Cron** — add only if scheduled summaries become useful
+5. **Supabase Auth** — email/password login protects the dashboard and protected web API routes
+6. **Cloudflare** — deploy `apps/webhook`, set secrets, register Telegram webhook
+7. **Vercel Cron** — add only if scheduled summaries become useful
 
 ---
 

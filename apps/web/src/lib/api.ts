@@ -1,4 +1,5 @@
 // Owner: apps/web. Server-side API client for the TrackX dashboard.
+import { cookies } from "next/headers";
 import type {
   BudgetStatus,
   CategoryName,
@@ -47,7 +48,7 @@ function getApiBaseUrl(): string {
     return `https://${process.env.VERCEL_URL}/api`;
   }
 
-  return "http://localhost:4001";
+  return "http://localhost:3000/api";
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -55,6 +56,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (init?.body !== undefined && !headers.has("content-type")) {
     headers.set("content-type", "application/json");
+  }
+
+  if (!headers.has("cookie")) {
+    headers.set("cookie", (await cookies()).toString());
   }
 
   const response = await fetch(`${getApiBaseUrl()}${path}`, {

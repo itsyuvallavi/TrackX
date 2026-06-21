@@ -3,11 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   ApiUpdateTransactionSchema,
   TransactionParamsSchema,
-  UserQuerySchema,
 } from "@trackx/api-core";
+import { requireApiUserId } from "@/lib/api-route-auth";
 import { readJsonBody, toApiErrorResponse } from "@/lib/api-route-errors";
 import { getTransactionService } from "@/lib/api-route-runtime";
-import { queryObject } from "@/lib/api-route-utils";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -20,10 +19,11 @@ export async function PATCH(
   context: RouteContext,
 ): Promise<NextResponse> {
   try {
+    const userId = await requireApiUserId();
     const params = TransactionParamsSchema.parse(await context.params);
     const input = ApiUpdateTransactionSchema.parse(await readJsonBody(request));
     return NextResponse.json(
-      await getTransactionService().update(params.id, input),
+      await getTransactionService().update(params.id, { ...input, userId }),
     );
   } catch (error) {
     return toApiErrorResponse(error);
@@ -35,10 +35,10 @@ export async function DELETE(
   context: RouteContext,
 ): Promise<NextResponse> {
   try {
+    const userId = await requireApiUserId();
     const params = TransactionParamsSchema.parse(await context.params);
-    const query = UserQuerySchema.parse(queryObject(request));
     return NextResponse.json(
-      await getTransactionService().remove(params.id, query.userId),
+      await getTransactionService().remove(params.id, userId),
     );
   } catch (error) {
     return toApiErrorResponse(error);

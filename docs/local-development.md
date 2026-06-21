@@ -82,7 +82,11 @@ pnpm web:dev
 pnpm worker:dev
 ```
 
-The web dashboard reads from `WEB_API_BASE_URL` in `.env`, defaulting to `http://localhost:4001`. The web app also has same-origin Next.js Route Handlers under `/api` for Vercel; local development still uses the Fastify API by default unless you point `WEB_API_BASE_URL` at a local web origin.
+The web dashboard reads from `WEB_API_BASE_URL` only when it is set. Leave it
+empty to use same-origin Next.js Route Handlers under `/api`, which is the
+recommended local path while testing Supabase dashboard auth. Set it to
+`http://localhost:4001` when you intentionally want the dashboard to talk to the
+local Fastify API.
 
 The worker reads `REDIS_URL` from `.env` and keeps BullMQ schedules disabled unless `WORKER_ENABLE_SCHEDULES=true`. This worker is for local queue learning only; production should use Vercel Cron routes if scheduled summaries are added.
 

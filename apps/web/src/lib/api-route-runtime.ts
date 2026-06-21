@@ -16,6 +16,7 @@ import {
   type ParserClient,
   ParserClientError,
   type TransactionService,
+  type UserRepository,
 } from "@trackx/api-core";
 import { createPrismaClient, type PrismaClient } from "@trackx/db";
 import { createOpenAiParser } from "@trackx/parser-core";
@@ -24,6 +25,7 @@ type ApiRouteServices = {
   budgetService: BudgetService;
   fromMessageService: FromMessageService;
   transactionService: TransactionService;
+  userRepository: UserRepository;
 };
 
 let prisma: PrismaClient | null = null;
@@ -39,6 +41,10 @@ export function getFromMessageService(): FromMessageService {
 
 export function getTransactionService(): TransactionService {
   return getServices().transactionService;
+}
+
+export function getUserRepository(): UserRepository {
+  return getServices().userRepository;
 }
 
 function getServices(): ApiRouteServices {
@@ -66,6 +72,7 @@ function getServices(): ApiRouteServices {
       createMessageIntentService(getIntentClient(), transactionService),
     ),
     transactionService,
+    userRepository: users,
   };
 
   return services;
