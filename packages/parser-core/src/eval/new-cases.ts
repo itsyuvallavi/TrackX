@@ -1,4 +1,4 @@
-// Owner: services/parser. Fresh live parser eval cases for anti-overfit dogfooding.
+// Owner: packages/parser-core. Fresh live parser eval cases for anti-overfit dogfooding.
 import { clarify, many, one, type EvalCase } from "./case-types.js";
 
 // prettier-ignore

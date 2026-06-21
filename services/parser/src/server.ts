@@ -4,7 +4,7 @@ import type { ParserConfig } from "@trackx/config";
 import {
   createOpenAiParser,
   type ParseTransactionMessage,
-} from "./openai-parser.js";
+} from "@trackx/parser-core";
 import { registerParserRoutes } from "./routes.js";
 
 export type BuildParserServerOptions = {

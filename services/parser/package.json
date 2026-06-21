@@ -13,19 +13,19 @@
     }
   },
   "scripts": {
-    "build": "pnpm --filter @trackx/config build && pnpm --filter @trackx/shared build && tsc -p tsconfig.json",
+    "build": "pnpm --filter @trackx/config build && pnpm --filter @trackx/parser-core build && pnpm --filter @trackx/shared build && tsc -p tsconfig.json",
     "dev": "tsx src/index.ts",
-    "eval": "pnpm --filter @trackx/config build && pnpm --filter @trackx/shared build && tsx src/eval/run-live-eval.ts",
+    "eval": "pnpm --filter @trackx/parser-core eval",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "pnpm --filter @trackx/config build && pnpm --filter @trackx/shared build && vitest run",
-    "typecheck": "pnpm --filter @trackx/config build && pnpm --filter @trackx/shared build && tsc -p tsconfig.json --noEmit"
+    "test": "pnpm --filter @trackx/config build && pnpm --filter @trackx/parser-core build && pnpm --filter @trackx/shared build && vitest run",
+    "typecheck": "pnpm --filter @trackx/config build && pnpm --filter @trackx/parser-core build && pnpm --filter @trackx/shared build && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@trackx/config": "workspace:*",
+    "@trackx/parser-core": "workspace:*",
     "@trackx/shared": "workspace:*",
     "dotenv": "^17.2.3",
-    "fastify": "^5.6.2",
-    "openai": "^6.10.0"
+    "fastify": "^5.6.2"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

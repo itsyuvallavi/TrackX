@@ -65,11 +65,11 @@ It owns:
 
 ### How other components use it
 
-| Caller               | Calls API for                                                     |
-| -------------------- | ----------------------------------------------------------------- |
-| Cloudflare webhook   | `POST /transactions/from-message`, `/undo`, budgets, dashboard    |
-| Vercel web dashboard | `GET /dashboard/*`, `GET /transactions`, `PATCH`/`DELETE`         |
-| Parser (today)       | API calls parser; future: parser logic may move inside Vercel API |
+| Caller               | Calls API for                                                           |
+| -------------------- | ----------------------------------------------------------------------- |
+| Cloudflare webhook   | `POST /transactions/from-message`, `/undo`, budgets, dashboard          |
+| Vercel web dashboard | `GET /dashboard/*`, `GET /transactions`, `PATCH`/`DELETE`               |
+| Parser               | Local API calls parser service; Vercel API calls parser-core in-process |
 
 ### Keys on Vercel
 
@@ -220,7 +220,9 @@ Setup details: [cloudflare-webhook.md](./cloudflare-webhook.md).
 
 ### Repo location today
 
-`services/parser` — Fastify service with OpenAI structured output.
+`packages/parser-core` — OpenAI structured-output parser, prompt, normalization, and eval cases.
+
+`services/parser` — local Fastify HTTP adapter around `@trackx/parser-core`.
 
 ### What the parser does (simple)
 
@@ -236,13 +238,13 @@ The parser does **not** save to the database or reply on Telegram.
 
 ### Target placement
 
-| Phase               | Parser lives                   | Why                                                |
-| ------------------- | ------------------------------ | -------------------------------------------------- |
-| **Now (local)**     | `services/parser` HTTP service | Already built                                      |
-| **Target (Vercel)** | Inside API (same deploy)       | One hop, one cold start, OpenAI key only on Vercel |
-| **Optional split**  | Cloudflare Worker              | Stateless, good for resume; extra network hop      |
+| Phase              | Parser lives                                | Why                                                |
+| ------------------ | ------------------------------------------- | -------------------------------------------------- |
+| **Local/Docker**   | `services/parser` HTTP service              | Keeps service split visible for learning           |
+| **Vercel target**  | `@trackx/parser-core` inside API deployment | One hop, one cold start, OpenAI key only on Vercel |
+| **Optional split** | Cloudflare Worker                           | Stateless, good for resume; extra network hop      |
 
-**Recommendation:** start with **parser inside the Vercel API**; extract to a Cloudflare Worker only if you want a visible split on the diagram.
+**Recommendation:** keep parser-core inside the Vercel API; extract to a Cloudflare Worker only if you want a visible split on the diagram.
 
 ### Keys
 
@@ -301,19 +303,20 @@ Vercel Cron
 
 ## Monorepo map: code vs cloud
 
-| Repo path              | Local role                | Production host                                        |
-| ---------------------- | ------------------------- | ------------------------------------------------------ |
-| `apps/web`             | Dashboard                 | **Vercel**                                             |
-| `apps/webhook`         | Telegram webhook          | **Cloudflare Workers**                                 |
-| `apps/bot`             | Telegram polling          | **Local dev only** (not prod)                          |
-| `apps/web/src/app/api` | API hub                   | **Vercel**                                             |
-| `services/api`         | Fastify API               | Local/Docker compatibility path                        |
-| `services/parser`      | OpenAI parsing            | Inside Vercel API target; local service until migrated |
-| `services/worker`      | BullMQ worker placeholder | Local experiment only, not prod                        |
-| `packages/api-core`    | API domain logic          | Bundled into local API and Vercel API routes           |
-| `packages/db`          | Prisma / schema           | Migrations against **Supabase**                        |
-| `packages/shared`      | Shared types/schemas      | Bundled into all deploys                               |
-| `packages/config`      | Env parsing               | Used by Node services locally                          |
+| Repo path              | Local role                | Production host                              |
+| ---------------------- | ------------------------- | -------------------------------------------- |
+| `apps/web`             | Dashboard                 | **Vercel**                                   |
+| `apps/webhook`         | Telegram webhook          | **Cloudflare Workers**                       |
+| `apps/bot`             | Telegram polling          | **Local dev only** (not prod)                |
+| `apps/web/src/app/api` | API hub                   | **Vercel**                                   |
+| `services/api`         | Fastify API               | Local/Docker compatibility path              |
+| `services/parser`      | Parser HTTP adapter       | Local/Docker compatibility path              |
+| `packages/parser-core` | OpenAI parsing            | Bundled into Vercel API routes               |
+| `services/worker`      | BullMQ worker placeholder | Local experiment only, not prod              |
+| `packages/api-core`    | API domain logic          | Bundled into local API and Vercel API routes |
+| `packages/db`          | Prisma / schema           | Migrations against **Supabase**              |
+| `packages/shared`      | Shared types/schemas      | Bundled into all deploys                     |
+| `packages/config`      | Env parsing               | Used by Node services locally                |
 
 Docker Compose remains the **local** way to run Postgres + Redis + all services together. Production replaces Postgres with Supabase and does not require Redis, BullMQ, or five separate paid hosts.
 
@@ -415,7 +418,7 @@ Quick local path: [local-development.md](./local-development.md).
 
 1. **Supabase** — create project, run Prisma migrate/seed, set `DATABASE_URL` and `DIRECT_URL` on Vercel
 2. **Vercel API migration** — added under `apps/web/src/app/api`; keep expanding until parser is colocated
-3. **Parser** — colocate OpenAI parsing inside Vercel API routes
+3. **Parser** — parser-core is colocated inside Vercel API routes
 4. **Vercel web** — deploy `apps/web`; use same-origin `/api/...`
 5. **Cloudflare** — deploy `apps/webhook`, set secrets, register Telegram webhook
 6. **Vercel Cron** — add only if scheduled summaries become useful

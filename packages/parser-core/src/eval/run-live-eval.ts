@@ -1,4 +1,4 @@
-// Owner: services/parser. Manual OpenAI eval runner for parser dogfooding.
+// Owner: packages/parser-core. Manual OpenAI eval runner for parser dogfooding.
 import { resolve } from "node:path";
 import { config as loadDotenv } from "dotenv";
 import { loadParserConfig } from "@trackx/config";

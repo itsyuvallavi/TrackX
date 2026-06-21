@@ -1,4 +1,4 @@
-// Owner: services/parser. Tests for parser prompt contract details.
+// Owner: packages/parser-core. Tests for parser prompt contract details.
 import { describe, expect, it } from "vitest";
 import { buildParserInstructions } from "../parser-prompt.js";
 

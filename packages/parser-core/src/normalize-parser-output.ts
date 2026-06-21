@@ -1,4 +1,4 @@
-// Owner: services/parser. Validation and normalization for OpenAI parser output.
+// Owner: packages/parser-core. Validation and normalization for OpenAI parser output.
 import { ParserResponseSchema, type ParserResponse } from "@trackx/shared";
 
 export class ParserOutputError extends Error {

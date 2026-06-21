@@ -1,4 +1,4 @@
-// Owner: services/parser. Prompt instructions for OpenAI finance message extraction.
+// Owner: packages/parser-core. Prompt instructions for OpenAI finance message extraction.
 import { CATEGORY_NAMES, CURRENCIES } from "@trackx/shared";
 
 export const PARSER_RESPONSE_SCHEMA = {

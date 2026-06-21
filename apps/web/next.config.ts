@@ -2,7 +2,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@trackx/api-core", "@trackx/db", "@trackx/shared"],
+  transpilePackages: [
+    "@trackx/api-core",
+    "@trackx/db",
+    "@trackx/parser-core",
+    "@trackx/shared",
+  ],
 };
 
 export default nextConfig;

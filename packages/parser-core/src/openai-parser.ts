@@ -1,4 +1,4 @@
-// Owner: services/parser. OpenAI-backed finance message parser.
+// Owner: packages/parser-core. OpenAI-backed finance message parser.
 import OpenAI from "openai";
 import type { ParserRequest, ParserResponse } from "@trackx/shared";
 import {

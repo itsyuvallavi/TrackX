@@ -2,7 +2,6 @@
 import {
   createBudgetService,
   createFromMessageService,
-  createHttpParserClient,
   createMessageIntentService,
   createNoopTransactionIntentClient,
   createOpenAiTransactionIntentClient,
@@ -14,9 +13,12 @@ import {
   createTransactionService,
   type BudgetService,
   type FromMessageService,
+  type ParserClient,
+  ParserClientError,
   type TransactionService,
 } from "@trackx/api-core";
 import { createPrismaClient, type PrismaClient } from "@trackx/db";
+import { createOpenAiParser } from "@trackx/parser-core";
 
 type ApiRouteServices = {
   budgetService: BudgetService;
@@ -57,7 +59,7 @@ function getServices(): ApiRouteServices {
       createPrismaBudgetRepository(client),
     ),
     fromMessageService: createFromMessageService(
-      createHttpParserClient(getParserBaseUrl()),
+      getParserClient(),
       createPrismaParseEventRepository(client),
       createPrismaPendingClarificationRepository(client),
       transactionService,
@@ -74,10 +76,6 @@ function getPrisma(): PrismaClient {
   return prisma;
 }
 
-function getParserBaseUrl(): string {
-  return process.env.PARSER_BASE_URL ?? "http://localhost:4002";
-}
-
 function getIntentClient() {
   const apiKey = normalizeSecret(process.env.OPENAI_API_KEY);
 
@@ -89,6 +87,25 @@ function getIntentClient() {
     apiKey,
     model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
   });
+}
+
+function getParserClient(): ParserClient {
+  const apiKey = normalizeSecret(process.env.OPENAI_API_KEY);
+
+  if (!apiKey) {
+    return {
+      async parseTransaction() {
+        throw new ParserClientError("Parser requires OPENAI_API_KEY.");
+      },
+    };
+  }
+
+  const parseTransaction = createOpenAiParser({
+    apiKey,
+    model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+  });
+
+  return { parseTransaction };
 }
 
 function normalizeSecret(value: string | undefined): string | undefined {

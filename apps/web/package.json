@@ -4,16 +4,17 @@
   "private": true,
   "description": "Next.js dashboard for TrackX.",
   "scripts": {
-    "dev": "pnpm --filter @trackx/api-core build && next dev --port 3000",
-    "build": "pnpm --filter @trackx/api-core build && pnpm --filter @trackx/shared build && next build",
+    "dev": "pnpm --filter @trackx/api-core build && pnpm --filter @trackx/parser-core build && next dev --port 3000",
+    "build": "pnpm --filter @trackx/api-core build && pnpm --filter @trackx/parser-core build && pnpm --filter @trackx/shared build && next build",
     "start": "next start --port 3000",
     "lint": "tsc --noEmit",
-    "typecheck": "pnpm --filter @trackx/api-core build && pnpm --filter @trackx/shared build && tsc --noEmit",
+    "typecheck": "pnpm --filter @trackx/api-core build && pnpm --filter @trackx/parser-core build && pnpm --filter @trackx/shared build && tsc --noEmit",
     "test": "echo \"No web tests yet.\""
   },
   "dependencies": {
     "@trackx/api-core": "workspace:*",
     "@trackx/db": "workspace:*",
+    "@trackx/parser-core": "workspace:*",
     "@trackx/shared": "workspace:*",
     "next": "^15.5.4",
     "react": "^19.1.1",

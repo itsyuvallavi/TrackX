@@ -83,6 +83,7 @@ packages/
   api-core/            Route-independent API clients, repositories, and services
   config/              Shared environment parsing
   db/                  Prisma schema, migrations, seed data, client
+  parser-core/         Route-independent OpenAI parser logic, prompt, and evals
   shared/              Zod schemas, types, category rules, budget helpers
 
 docs/
@@ -284,9 +285,7 @@ Status: implemented in Slice 5.
 Ownership:
 
 - Fastify parser service with `GET /health` and `POST /parse-transaction`.
-- OpenAI structured-output parser for natural-language finance messages.
-- Prompt guidance for categories, currencies, income, expenses, split messages, and clarification behavior.
-- Request and response validation through shared Zod schemas.
+- Local/Docker HTTP adapter around `@trackx/parser-core`.
 
 Focused commands:
 
@@ -302,6 +301,27 @@ pnpm parser:eval -- --suite=new
 Parser tests mock OpenAI and do not require `OPENAI_API_KEY`. Live parsing requires a real key in `.env`.
 
 `pnpm parser:eval` runs the baseline 100-message dogfood suite against the real OpenAI parser and checks product-critical fields. Use `pnpm parser:eval -- --suite=new` for the fresh anti-overfit suite. Live eval is not part of `pnpm mvp:check` because it requires a paid model and can vary over time.
+
+### `@trackx/parser-core`
+
+Status: extracted during production-prep parser colocation.
+
+Ownership:
+
+- OpenAI structured-output parser for natural-language finance messages.
+- Prompt guidance for categories, currencies, income, expenses, split messages, and clarification behavior.
+- Request and response normalization through shared Zod schemas.
+- Live parser eval cases used by `pnpm parser:eval`.
+- Reusable parser boundary for the local Fastify parser service and Vercel Route Handlers.
+
+Focused commands:
+
+```bash
+pnpm --filter @trackx/parser-core test
+pnpm --filter @trackx/parser-core typecheck
+pnpm --filter @trackx/parser-core build
+pnpm --filter @trackx/parser-core eval -- --suite=new
+```
 
 ### `@trackx/api`
 
@@ -457,7 +477,7 @@ Variables used by TrackX services and tooling:
 | `OPENAI_API_KEY`            | Optional OpenAI key for parser and API edit intent |
 | `OPENAI_MODEL`              | OpenAI model used by parser and API edit intent    |
 | `PARSER_PORT`               | Parser service port                                |
-| `PARSER_BASE_URL`           | Parser service base URL                            |
+| `PARSER_BASE_URL`           | Local Fastify parser service base URL              |
 | `API_PORT`                  | API service port                                   |
 | `API_BASE_URL`              | API service base URL                               |
 | `TELEGRAM_BOT_TOKEN`        | Telegram bot token                                 |
@@ -522,7 +542,7 @@ See [PLAN.md](./PLAN.md) for the full implementation history.
 
 ## Production Direction
 
-The Vercel API migration layer now exists under `apps/web/src/app/api` and calls `@trackx/api-core`. Next production-prep work should connect hosted Supabase, colocate parser behavior in the Vercel API path, and decide dashboard auth/protection before public deployment.
+The Vercel API migration layer now exists under `apps/web/src/app/api` and calls `@trackx/api-core`. Parser behavior has been extracted to `@trackx/parser-core` so Vercel can parse in-process without a separate parser host. Next production-prep work should connect hosted Supabase and decide dashboard auth/protection before public deployment.
 
 ## Docker Stack
 

@@ -1,4 +1,4 @@
-// Owner: services/parser. Baseline live parser eval cases.
+// Owner: packages/parser-core. Baseline live parser eval cases.
 import { clarify, many, one, type EvalCase } from "./case-types.js";
 
 // prettier-ignore

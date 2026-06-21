@@ -56,6 +56,9 @@ importers:
       "@trackx/db":
         specifier: workspace:*
         version: link:../../packages/db
+      "@trackx/parser-core":
+        specifier: workspace:*
+        version: link:../../packages/parser-core
       "@trackx/shared":
         specifier: workspace:*
         version: link:../../packages/shared
@@ -167,6 +170,31 @@ importers:
         specifier: ^4.0.0
         version: 4.1.9(@types/node@24.13.2)(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4))
 
+  packages/parser-core:
+    dependencies:
+      "@trackx/config":
+        specifier: workspace:*
+        version: link:../config
+      "@trackx/shared":
+        specifier: workspace:*
+        version: link:../shared
+      dotenv:
+        specifier: ^17.2.3
+        version: 17.4.2
+      openai:
+        specifier: ^6.10.0
+        version: 6.44.0(ws@8.21.0)(zod@4.4.3)
+    devDependencies:
+      "@types/node":
+        specifier: ^24.10.1
+        version: 24.13.2
+      tsx:
+        specifier: ^4.20.5
+        version: 4.22.4
+      vitest:
+        specifier: ^4.0.0
+        version: 4.1.9(@types/node@24.13.2)(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4))
+
   packages/shared:
     dependencies:
       zod:
@@ -216,6 +244,9 @@ importers:
       "@trackx/config":
         specifier: workspace:*
         version: link:../../packages/config
+      "@trackx/parser-core":
+        specifier: workspace:*
+        version: link:../../packages/parser-core
       "@trackx/shared":
         specifier: workspace:*
         version: link:../../packages/shared
@@ -225,9 +256,6 @@ importers:
       fastify:
         specifier: ^5.6.2
         version: 5.8.5
-      openai:
-        specifier: ^6.10.0
-        version: 6.44.0(ws@8.21.0)(zod@4.4.3)
     devDependencies:
       "@types/node":
         specifier: ^24.10.1

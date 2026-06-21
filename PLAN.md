@@ -1,8 +1,8 @@
 # TrackX Detailed Implementation Plan
 
-Status: Slice 12 MVP hardening complete. Production prep is in progress. The reusable API core package and Vercel Route Handler adapter have been added; Supabase hosted migration, parser colocation, auth, and Cloudflare production webhook registration remain.
+Status: Slice 12 MVP hardening complete. Production prep is in progress. The reusable API core package, Vercel Route Handler adapter, and reusable parser core package have been added; Supabase hosted migration, auth, and Cloudflare production webhook registration remain.
 
-Slice 1 created the root monorepo scaffold. Slice 2 added the shared package foundation. Slice 3 added centralized environment config parsing. Slice 4 added the Prisma database package, initial migration, and default seed data. Slice 5 added the OpenAI-backed parser service. Slice 6 added the API service base and manual transaction CRUD routes. Slice 6.5 added local Docker Compose support for running Postgres, Redis, parser, and API together. Slice 7 added read-only budget status and dashboard summary endpoints. Slice 8 added the API from-message flow that calls the parser, stores parse events, and creates transactions. Slice 9 added the Telegram bot service with allowlist access control and API-backed commands. Slice 10 added the Next.js web dashboard with API-backed summaries, budgets, and transaction edit/delete. Slice 11 added the BullMQ worker placeholder with Redis connection and disabled-by-default schedules for local learning only. Slice 12 added architecture docs, fresh-install guidance, troubleshooting, and MVP verification checks. Production-prep slices then added Supabase-compatible Prisma URL handling, extracted `@trackx/api-core`, and added same-origin Next.js Route Handlers under `apps/web/src/app/api`. The local MVP gate is complete. Production should use Vercel Route Handlers in `apps/web`, Supabase Postgres, and Cloudflare Telegram webhooks; do not add production Redis/BullMQ unless a real queue requirement appears.
+Slice 1 created the root monorepo scaffold. Slice 2 added the shared package foundation. Slice 3 added centralized environment config parsing. Slice 4 added the Prisma database package, initial migration, and default seed data. Slice 5 added the OpenAI-backed parser service. Slice 6 added the API service base and manual transaction CRUD routes. Slice 6.5 added local Docker Compose support for running Postgres, Redis, parser, and API together. Slice 7 added read-only budget status and dashboard summary endpoints. Slice 8 added the API from-message flow that calls the parser, stores parse events, and creates transactions. Slice 9 added the Telegram bot service with allowlist access control and API-backed commands. Slice 10 added the Next.js web dashboard with API-backed summaries, budgets, and transaction edit/delete. Slice 11 added the BullMQ worker placeholder with Redis connection and disabled-by-default schedules for local learning only. Slice 12 added architecture docs, fresh-install guidance, troubleshooting, and MVP verification checks. Production-prep slices then added Supabase-compatible Prisma URL handling, extracted `@trackx/api-core`, added same-origin Next.js Route Handlers under `apps/web/src/app/api`, and extracted `@trackx/parser-core` so Vercel can parse in-process. The local MVP gate is complete. Production should use Vercel Route Handlers in `apps/web`, Supabase Postgres, and Cloudflare Telegram webhooks; do not add production Redis/BullMQ unless a real queue requirement appears.
 
 ## 0. Planning Contract
 
@@ -769,11 +769,14 @@ Files added:
 - `services/parser/src/index.ts`
 - `services/parser/src/server.ts`
 - `services/parser/src/routes.ts`
-- `services/parser/src/openai-parser.ts`
-- `services/parser/src/parser-prompt.ts`
-- `services/parser/src/normalize-parser-output.ts`
-- `services/parser/src/__tests__/openai-parser.test.ts`
 - `services/parser/src/__tests__/routes.test.ts`
+
+Production-prep relocation:
+
+- Parser implementation files now live in `packages/parser-core/src`.
+- Parser prompt and OpenAI tests now live in `packages/parser-core/src/__tests__`.
+- Live eval files now live in `packages/parser-core/src/eval`.
+- `services/parser` remains the local Fastify HTTP adapter.
 
 Implemented parser behavior:
 

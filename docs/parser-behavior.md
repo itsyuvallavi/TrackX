@@ -4,7 +4,7 @@ This document tracks the active parser and category behavior. Keep it short and 
 
 ## Current Slice
 
-The parser service uses OpenAI structured output as the primary parser and validates responses with shared Zod schemas.
+`@trackx/parser-core` uses OpenAI structured output as the primary parser and validates responses with shared Zod schemas. `services/parser` is the local Fastify HTTP adapter around the same parser core. Vercel Route Handlers call parser-core in-process.
 
 Deterministic category rules in `@trackx/shared` remain useful as prompt guidance and regression tests, but they are not a separate fallback parser service.
 
@@ -54,7 +54,7 @@ Terse Telegram-style messages are valid when they include enough information. Am
 
 ## Local Behavior
 
-`GET /health` does not require an OpenAI key. `POST /parse-transaction` requires `OPENAI_API_KEY`; without it, the service returns an unavailable response instead of pretending to parse.
+`GET /health` on `services/parser` does not require an OpenAI key. `POST /parse-transaction` requires `OPENAI_API_KEY`; without it, the service returns an unavailable response instead of pretending to parse. On Vercel, `/api/transactions/from-message` also requires `OPENAI_API_KEY` because it calls parser-core in-process.
 
 ## Live Parser Eval
 

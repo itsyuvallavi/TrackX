@@ -1,4 +1,4 @@
-// Owner: services/parser. Shared eval case types and helpers.
+// Owner: packages/parser-core. Shared eval case types and helpers.
 import type { CategoryName, Currency } from "@trackx/shared";
 
 export type EvalExpected =

@@ -1,4 +1,4 @@
-// Owner: services/parser. Tests for OpenAI parser normalization without live API calls.
+// Owner: packages/parser-core. Tests for OpenAI parser normalization without live API calls.
 import { describe, expect, it } from "vitest";
 import {
   parseTransactionWithOpenAi,

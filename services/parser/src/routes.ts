@@ -5,7 +5,7 @@ import {
   ParserResponseSchema,
   type ParserRequest,
 } from "@trackx/shared";
-import type { ParseTransactionMessage } from "./openai-parser.js";
+import type { ParseTransactionMessage } from "@trackx/parser-core";
 
 export type ParserRoutesOptions = {
   parseTransaction: ParseTransactionMessage | null;
