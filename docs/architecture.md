@@ -62,11 +62,12 @@ the API validates the requested category. It remains available as a fallback.
 
 ```text
 Browser at apps/web
-  -> server-side fetch to WEB_API_BASE_URL
-  -> GET /dashboard/month
-  -> GET /dashboard/week
-  -> GET /transactions
-  -> services/api adapter calls @trackx/api-core
+  -> server-side fetch to WEB_API_BASE_URL locally or Vercel /api in production
+  -> GET /dashboard/month OR /api/dashboard/month
+  -> GET /dashboard/week OR /api/dashboard/week
+  -> GET /transactions OR /api/transactions
+  -> services/api adapter locally OR apps/web Route Handler on Vercel
+  -> adapter calls @trackx/api-core
   -> @trackx/api-core reads Postgres through packages/db
   -> dashboard renders summaries, budgets, recent transactions
 ```
@@ -107,9 +108,9 @@ Services may transform data internally, but route inputs and outputs should use 
 - Prisma repository boundaries
 - Transaction, budget, dashboard, from-message, and clarification services
 
-`services/api` is now the local Fastify adapter around this package. The Vercel
-migration should add Next.js Route Handlers that call the same package instead
-of duplicating business logic.
+`services/api` is the local Fastify adapter around this package. `apps/web/src/app/api`
+is the Vercel Route Handler adapter around the same package. Both adapters
+should call `@trackx/api-core` instead of duplicating business logic.
 
 `@trackx/config` owns env parsing for runtime services. Two web/worker vars are read directly today:
 

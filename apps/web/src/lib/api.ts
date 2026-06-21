@@ -37,7 +37,17 @@ export class ApiError extends Error {
 }
 
 function getApiBaseUrl(): string {
-  return process.env.WEB_API_BASE_URL ?? "http://localhost:4001";
+  const configured = process.env.WEB_API_BASE_URL?.trim();
+
+  if (configured) {
+    return trimTrailingSlash(configured);
+  }
+
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}/api`;
+  }
+
+  return "http://localhost:4001";
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -69,6 +79,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return (await response.json()) as T;
+}
+
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/, "");
 }
 
 export async function getMonthDashboard(): Promise<DashboardMonthResponse> {

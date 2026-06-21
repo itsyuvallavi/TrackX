@@ -2,7 +2,7 @@
 
 TrackX is a Telegram-first AI expense tracker. Send natural-language finance messages to a Telegram bot, parse them into structured transactions, store them in Postgres, update weekly and monthly budgets, and review the same data in a web dashboard.
 
-The MVP vertical path is implemented locally: parser, API, bot, web dashboard, and a BullMQ worker placeholder. Production direction is Vercel Route Handlers, Supabase Postgres, and Cloudflare Telegram webhooks; no production Redis/BullMQ worker is planned for now.
+The MVP vertical path is implemented locally: parser, API, bot, web dashboard, and a BullMQ worker placeholder. Production prep now includes same-origin Vercel Route Handlers in the web app. Production direction is Vercel Route Handlers, Supabase Postgres, and Cloudflare Telegram webhooks; no production Redis/BullMQ worker is planned for now.
 
 ## Quick Start
 
@@ -53,6 +53,7 @@ Implemented locally:
 - Fastify API for transactions, budgets, and dashboard data
 - Prisma/Postgres data model with seed budgets and categories
 - Next.js dashboard for month/week summaries and transaction edit/delete
+- Same-origin Next.js API routes for Vercel deployment
 - BullMQ worker placeholder connected to Redis
 - Shared Zod schemas and offline-first unit tests
 
@@ -420,7 +421,7 @@ pnpm --filter @trackx/web dev
 pnpm web:dev
 ```
 
-The web app reads from `WEB_API_BASE_URL`, defaulting to `http://localhost:4001` in local development. In Docker, it uses `http://api:4001`.
+The web app reads from `WEB_API_BASE_URL` when it is set, defaulting to `http://localhost:4001` in local development. In Docker, it uses `http://api:4001`. On Vercel, when `WEB_API_BASE_URL` is not set, it uses Vercel's deployment URL plus `/api` so dashboard server fetches hit the same deployment's Route Handlers.
 
 ### `@trackx/worker`
 
@@ -467,10 +468,10 @@ Variables used by TrackX services and tooling:
 
 App-specific variables read outside `@trackx/config`:
 
-| Variable                  | Purpose                                         |
-| ------------------------- | ----------------------------------------------- |
-| `WEB_API_BASE_URL`        | API base URL used by the web dashboard          |
-| `WORKER_ENABLE_SCHEDULES` | Enable BullMQ cron schedules (`true` / `false`) |
+| Variable                  | Purpose                                          |
+| ------------------------- | ------------------------------------------------ |
+| `WEB_API_BASE_URL`        | Optional API base URL override for the dashboard |
+| `WORKER_ENABLE_SCHEDULES` | Enable BullMQ cron schedules (`true` / `false`)  |
 
 Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS`, `API_BASE_URL`, optional `TELEGRAM_WEBHOOK_SECRET`). See [docs/cloudflare-webhook.md](./docs/cloudflare-webhook.md).
 
@@ -483,7 +484,7 @@ Docker stack secrets are passed through shell exports such as `TRACKX_OPENAI_API
 ### Dashboard shows "Dashboard unavailable"
 
 - Confirm the API is running: `curl http://localhost:4001/health`
-- Confirm `WEB_API_BASE_URL` points to the API (`http://localhost:4001` locally)
+- Confirm `WEB_API_BASE_URL` points to the API (`http://localhost:4001` locally) or is unset on Vercel so same-origin `/api` is used
 - Migrate and seed Postgres: `pnpm db:migrate && pnpm db:seed`
 
 ### `POST /transactions/from-message` fails or asks for clarification
@@ -521,7 +522,7 @@ See [PLAN.md](./PLAN.md) for the full implementation history.
 
 ## Production Direction
 
-The next production-prep slice should migrate API behavior from `services/api` into Next.js Route Handlers under `apps/web/src/app/api`. After that, Vercel can host both dashboard and API, Supabase can provide Postgres, and Cloudflare can receive Telegram webhooks. Dashboard auth/protection should be decided before public deployment.
+The Vercel API migration layer now exists under `apps/web/src/app/api` and calls `@trackx/api-core`. Next production-prep work should connect hosted Supabase, colocate parser behavior in the Vercel API path, and decide dashboard auth/protection before public deployment.
 
 ## Docker Stack
 

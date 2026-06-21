@@ -80,7 +80,7 @@ pnpm web:dev
 pnpm worker:dev
 ```
 
-The web dashboard reads from `WEB_API_BASE_URL` in `.env`, defaulting to `http://localhost:4001`.
+The web dashboard reads from `WEB_API_BASE_URL` in `.env`, defaulting to `http://localhost:4001`. The web app also has same-origin Next.js Route Handlers under `/api` for Vercel; local development still uses the Fastify API by default unless you point `WEB_API_BASE_URL` at a local web origin.
 
 The worker reads `REDIS_URL` from `.env` and keeps BullMQ schedules disabled unless `WORKER_ENABLE_SCHEDULES=true`. This worker is for local queue learning only; production should use Vercel Cron routes if scheduled summaries are added.
 
@@ -206,13 +206,13 @@ For Docker stack runs, export `TRACKX_TELEGRAM_BOT_TOKEN` and `TRACKX_TELEGRAM_A
 
 ## Troubleshooting
 
-| Symptom                    | Likely fix                                                                 |
-| -------------------------- | -------------------------------------------------------------------------- |
-| Dashboard unavailable      | Start API; check `WEB_API_BASE_URL`; run `pnpm db:migrate && pnpm db:seed` |
-| Parser unavailable         | Start parser; set `OPENAI_API_KEY`                                         |
-| Bot silent                 | Set token and allowlist; start API and parser first                        |
-| Worker exits               | Run `pnpm infra:up`; verify `REDIS_URL`                                    |
-| Docker parser/bot inactive | Export `TRACKX_*` secrets before `pnpm stack:up`                           |
-| Prisma directUrl error     | Add `DIRECT_URL` to `.env` or use the local `pnpm db:*` wrapper scripts    |
+| Symptom                    | Likely fix                                                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| Dashboard unavailable      | Start API or use web `/api`; check `WEB_API_BASE_URL`; run `pnpm db:migrate && pnpm db:seed` |
+| Parser unavailable         | Start parser; set `OPENAI_API_KEY`                                                           |
+| Bot silent                 | Set token and allowlist; start API and parser first                                          |
+| Worker exits               | Run `pnpm infra:up`; verify `REDIS_URL`                                                      |
+| Docker parser/bot inactive | Export `TRACKX_*` secrets before `pnpm stack:up`                                             |
+| Prisma directUrl error     | Add `DIRECT_URL` to `.env` or use the local `pnpm db:*` wrapper scripts                      |
 
 More detail lives in the README troubleshooting section.

@@ -41,10 +41,11 @@ Production target:
 
 - `apps/web/src/app/api/.../route.ts` — Next.js Route Handlers on Vercel.
 
-Current local implementation:
+Current implementation:
 
-- `services/api` — Fastify service used by the local MVP and Docker stack until the endpoint behavior is migrated into `apps/web`.
-- `packages/api-core` — route-independent API logic shared by the Fastify adapter and future Vercel Route Handlers.
+- `apps/web/src/app/api/.../route.ts` — same-origin Next.js Route Handlers for Vercel.
+- `services/api` — Fastify service used by the local MVP and Docker stack.
+- `packages/api-core` — route-independent API logic shared by the Fastify adapter and Vercel Route Handlers.
 
 It owns:
 
@@ -109,15 +110,15 @@ Local development uses the same names in root `.env`.
 Current local implementation uses server-side fetch to `WEB_API_BASE_URL`:
 
 - Local: `http://localhost:4001`
-- Production target after API migration: same Vercel deployment (`/api/...`)
+- Vercel: if `WEB_API_BASE_URL` is unset, the web app uses Vercel's deployment URL plus `/api`
 
 The web app **does not** connect to Supabase directly.
 
 ### Keys
 
-| Variable           | Where                                                      |
-| ------------------ | ---------------------------------------------------------- |
-| `WEB_API_BASE_URL` | Local/Docker only until Vercel route migration is complete |
+| Variable           | Where                                                                   |
+| ------------------ | ----------------------------------------------------------------------- |
+| `WEB_API_BASE_URL` | Local/Docker override; leave unset on Vercel for same deployment `/api` |
 
 ---
 
@@ -306,7 +307,7 @@ Vercel Cron
 | `apps/webhook`         | Telegram webhook          | **Cloudflare Workers**                                 |
 | `apps/bot`             | Telegram polling          | **Local dev only** (not prod)                          |
 | `apps/web/src/app/api` | API hub                   | **Vercel**                                             |
-| `services/api`         | Fastify API               | Local/Docker stepping stone until migrated             |
+| `services/api`         | Fastify API               | Local/Docker compatibility path                        |
 | `services/parser`      | OpenAI parsing            | Inside Vercel API target; local service until migrated |
 | `services/worker`      | BullMQ worker placeholder | Local experiment only, not prod                        |
 | `packages/api-core`    | API domain logic          | Bundled into local API and Vercel API routes           |
@@ -413,7 +414,7 @@ Quick local path: [local-development.md](./local-development.md).
 ## Implementation order (recommended)
 
 1. **Supabase** — create project, run Prisma migrate/seed, set `DATABASE_URL` and `DIRECT_URL` on Vercel
-2. **Vercel API migration** — move current `services/api` endpoint behavior into `apps/web/src/app/api`
+2. **Vercel API migration** — added under `apps/web/src/app/api`; keep expanding until parser is colocated
 3. **Parser** — colocate OpenAI parsing inside Vercel API routes
 4. **Vercel web** — deploy `apps/web`; use same-origin `/api/...`
 5. **Cloudflare** — deploy `apps/webhook`, set secrets, register Telegram webhook
