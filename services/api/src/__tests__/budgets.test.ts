@@ -112,21 +112,20 @@ async function serverWithBudgetService() {
 
 function createInMemoryBudgetService(): BudgetService {
   const users: UserRepository = {
+    async ensureAuthUser() {
+      return userRecord();
+    },
     async ensureDefaultUser() {
-      return {
-        id: defaultUserId,
-        defaultCurrency: "EUR",
-        timezone: "Europe/Lisbon",
-      };
+      return userRecord();
+    },
+    async ensureTelegramUser() {
+      return userRecord();
     },
     async findById(userId) {
-      return userId === defaultUserId
-        ? {
-            id: defaultUserId,
-            defaultCurrency: "EUR",
-            timezone: "Europe/Lisbon",
-          }
-        : null;
+      return userId === defaultUserId ? userRecord() : null;
+    },
+    async findByTelegramUserId() {
+      return userRecord();
     },
   };
   const budgets: BudgetRepository = {
@@ -145,6 +144,14 @@ function createInMemoryBudgetService(): BudgetService {
     budgets,
     () => new Date("2026-06-19T12:00:00.000Z"),
   );
+}
+
+function userRecord() {
+  return {
+    id: defaultUserId,
+    defaultCurrency: "EUR" as const,
+    timezone: "Europe/Lisbon",
+  };
 }
 
 const seedBudgets: BudgetRecord[] = [

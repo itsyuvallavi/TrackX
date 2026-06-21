@@ -31,7 +31,10 @@ export type TrackxApiClient = {
     timezone: string;
     defaultCurrency: string;
   }): Promise<{ feedback: string }>;
-  getBudgetStatus(period: "week" | "month"): Promise<{
+  getBudgetStatus(input: {
+    period: "week" | "month";
+    telegramUserId?: string | undefined;
+  }): Promise<{
     budgets: Array<{
       category: string;
       spentAmount: number;
@@ -40,13 +43,13 @@ export type TrackxApiClient = {
       status: string;
     }>;
   }>;
-  getMonthDashboard(): Promise<{
+  getMonthDashboard(input: { telegramUserId?: string | undefined }): Promise<{
     income: number;
     expenses: number;
     net: number;
     currency: string;
   }>;
-  undoLast(): Promise<{
+  undoLast(input: { telegramUserId?: string | undefined }): Promise<{
     description: string;
     amount: number;
     currency: string;
@@ -62,27 +65,47 @@ export type TrackxApiClient = {
   }>;
 };
 
-export function createTrackxApiClient(baseUrl: string): TrackxApiClient {
+export function createTrackxApiClient(
+  baseUrl: string,
+  apiSecret: string,
+): TrackxApiClient {
+  const authHeaders = { "x-trackx-api-secret": apiSecret };
+
   return {
     async createFromMessage(input) {
       return FromMessageResponseSchema.parse(
         await requestJson(`${baseUrl}/transactions/from-message`, {
           method: "POST",
+          headers: authHeaders,
           body: JSON.stringify(input),
         }),
       );
     },
-    async getBudgetStatus(period) {
+    async getBudgetStatus(input) {
+      const params = new URLSearchParams({ period: input.period });
+      if (input.telegramUserId) {
+        params.set("telegramUserId", input.telegramUserId);
+      }
+
       return BudgetStatusResponseSchema.parse(
-        await requestJson(`${baseUrl}/budgets/status?period=${period}`),
+        await requestJson(`${baseUrl}/budgets/status?${params}`, {
+          headers: authHeaders,
+        }),
       );
     },
-    async getMonthDashboard() {
+    async getMonthDashboard(input) {
+      const params = new URLSearchParams();
+      if (input.telegramUserId) {
+        params.set("telegramUserId", input.telegramUserId);
+      }
+
       return MonthDashboardResponseSchema.parse(
-        await requestJson(`${baseUrl}/dashboard/month`),
+        await requestJson(`${baseUrl}/dashboard/month?${params}`, {
+          headers: authHeaders,
+        }),
       );
     },
-    async undoLast() {
+    async undoLast(input) {
       return z
         .object({
           description: z.string(),
@@ -92,7 +115,11 @@ export function createTrackxApiClient(baseUrl: string): TrackxApiClient {
         .parse(
           await requestJson(`${baseUrl}/transactions/undo-last`, {
             method: "POST",
-            body: JSON.stringify({ source: "telegram" }),
+            headers: authHeaders,
+            body: JSON.stringify({
+              source: "telegram",
+              telegramUserId: input.telegramUserId,
+            }),
           }),
         );
     },
@@ -107,6 +134,7 @@ export function createTrackxApiClient(baseUrl: string): TrackxApiClient {
         .parse(
           await requestJson(`${baseUrl}/transactions/update-last-category`, {
             method: "POST",
+            headers: authHeaders,
             body: JSON.stringify({
               source: "telegram",
               category: input.category,

@@ -15,6 +15,9 @@ export function createInMemoryTransactionService(
   records: TransactionRecord[],
 ): TransactionService {
   const users: UserRepository = {
+    async ensureAuthUser() {
+      return userRecord();
+    },
     async ensureDefaultUser() {
       return userRecord();
     },
@@ -23,6 +26,9 @@ export function createInMemoryTransactionService(
     },
     async findById(userId) {
       return userId === defaultUserId ? userRecord() : null;
+    },
+    async findByTelegramUserId() {
+      return userRecord();
     },
   };
   const transactions: TransactionRepository = {

@@ -54,7 +54,7 @@ export type TrackxApiClient = {
   }): Promise<FromMessageResponse>;
   getBudgetStatus(period: "week" | "month"): Promise<BudgetStatusResponse>;
   getMonthDashboard(): Promise<MonthDashboardResponse>;
-  undoLast(): Promise<{
+  undoLast(input: { telegramUserId?: string | undefined }): Promise<{
     description: string;
     amount: number;
     currency: string;
@@ -90,10 +90,13 @@ export function createTrackxApiClient(baseUrl: string): TrackxApiClient {
         await requestJson(`${baseUrl}/dashboard/month`),
       );
     },
-    async undoLast() {
+    async undoLast(input) {
       const response = await requestJson(`${baseUrl}/transactions/undo-last`, {
         method: "POST",
-        body: JSON.stringify({ source: "telegram" }),
+        body: JSON.stringify({
+          source: "telegram",
+          telegramUserId: input.telegramUserId,
+        }),
       });
 
       return z

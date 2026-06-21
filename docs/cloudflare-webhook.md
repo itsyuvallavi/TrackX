@@ -37,6 +37,7 @@ cat > apps/webhook/.dev.vars <<'EOF'
 TELEGRAM_BOT_TOKEN=your-token
 TELEGRAM_ALLOWED_USER_IDS=123456789
 API_BASE_URL=http://localhost:4001
+TRACKX_API_SECRET=local-shared-secret
 TELEGRAM_WEBHOOK_SECRET=optional-local-secret
 EOF
 ```
@@ -79,6 +80,7 @@ cd apps/webhook
 wrangler secret put TELEGRAM_BOT_TOKEN
 wrangler secret put TELEGRAM_ALLOWED_USER_IDS
 wrangler secret put API_BASE_URL
+wrangler secret put TRACKX_API_SECRET
 wrangler secret put TELEGRAM_WEBHOOK_SECRET
 ```
 
@@ -102,6 +104,7 @@ You do not need both in production. Pick one receiver for Telegram.
 | `TELEGRAM_BOT_TOKEN`        | Bot token from BotFather                       |
 | `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated allowlist                      |
 | `API_BASE_URL`              | Public or tunneled TrackX API base URL         |
+| `TRACKX_API_SECRET`         | Shared secret for Cloudflare-to-Vercel API     |
 | `DEFAULT_TIMEZONE`          | Default timezone for parsing                   |
 | `DEFAULT_CURRENCY`          | Default currency for parsing                   |
 | `TELEGRAM_WEBHOOK_SECRET`   | Optional shared secret validated from Telegram |

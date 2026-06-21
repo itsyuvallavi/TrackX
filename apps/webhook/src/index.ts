@@ -44,7 +44,7 @@ export default {
 
       const reply = await handleIncomingMessage(incoming, {
         allowedUserIds: parseAllowedUserIds(env.TELEGRAM_ALLOWED_USER_IDS),
-        api: createTrackxApiClient(env.API_BASE_URL),
+        api: createTrackxApiClient(env.API_BASE_URL, env.TRACKX_API_SECRET),
         timezone: env.DEFAULT_TIMEZONE,
         defaultCurrency: env.DEFAULT_CURRENCY,
       });

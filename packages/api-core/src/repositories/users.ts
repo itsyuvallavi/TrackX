@@ -21,6 +21,7 @@ export type UserRepository = {
   ensureDefaultUser(): Promise<UserRecord>;
   ensureTelegramUser(telegramUserId: string): Promise<UserRecord>;
   findById(userId: string): Promise<UserRecord | null>;
+  findByTelegramUserId(telegramUserId: string): Promise<UserRecord | null>;
 };
 
 export function createPrismaUserRepository(
@@ -97,6 +98,13 @@ export function createPrismaUserRepository(
     async findById(userId) {
       return prisma.user.findUnique({
         where: { id: userId },
+        select: { id: true, defaultCurrency: true, timezone: true },
+      });
+    },
+
+    async findByTelegramUserId(telegramUserId) {
+      return prisma.user.findUnique({
+        where: { telegramUserId },
         select: { id: true, defaultCurrency: true, timezone: true },
       });
     },

@@ -154,28 +154,20 @@ async function serverWithInMemoryService() {
 function createInMemoryTransactionService(): TransactionService {
   const records: TransactionRecord[] = [];
   const users: UserRepository = {
+    async ensureAuthUser() {
+      return userRecord();
+    },
     async ensureDefaultUser() {
-      return {
-        id: defaultUserId,
-        defaultCurrency: "EUR",
-        timezone: "Europe/Lisbon",
-      };
+      return userRecord();
     },
     async ensureTelegramUser() {
-      return {
-        id: defaultUserId,
-        defaultCurrency: "EUR",
-        timezone: "Europe/Lisbon",
-      };
+      return userRecord();
     },
     async findById(userId) {
-      return userId === defaultUserId
-        ? {
-            id: defaultUserId,
-            defaultCurrency: "EUR",
-            timezone: "Europe/Lisbon",
-          }
-        : null;
+      return userId === defaultUserId ? userRecord() : null;
+    },
+    async findByTelegramUserId() {
+      return userRecord();
     },
   };
   const transactions: TransactionRepository = {
@@ -281,6 +273,14 @@ function createInMemoryTransactionService(): TransactionService {
   };
 
   return createTransactionService(users, transactions);
+}
+
+function userRecord() {
+  return {
+    id: defaultUserId,
+    defaultCurrency: "EUR" as const,
+    timezone: "Europe/Lisbon",
+  };
 }
 
 async function createFoodTransaction(

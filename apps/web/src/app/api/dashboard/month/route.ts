@@ -1,14 +1,17 @@
 // Owner: apps/web. Same-origin month dashboard API route.
 import { NextResponse, type NextRequest } from "next/server";
-import { requireApiUserId } from "@/lib/api-route-auth";
+import { requireApiUserIdOrTelegram } from "@/lib/api-route-auth";
 import { toApiErrorResponse } from "@/lib/api-route-errors";
 import { getBudgetService } from "@/lib/api-route-runtime";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: NextRequest): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const userId = await requireApiUserId();
+    const userId = await requireApiUserIdOrTelegram(
+      request,
+      request.nextUrl.searchParams.get("telegramUserId"),
+    );
     return NextResponse.json(
       await getBudgetService().getMonthDashboard(userId),
     );

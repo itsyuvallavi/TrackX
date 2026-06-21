@@ -63,7 +63,9 @@ export async function handleCommand(
   }
 
   if (name === "/undo") {
-    const transaction = await options.api.undoLast();
+    const transaction = await options.api.undoLast({
+      telegramUserId: telegramUserId(ctx),
+    });
     await ctx.reply(
       `Undid ${transaction.amount} ${transaction.currency}: ${transaction.description}.`,
     );

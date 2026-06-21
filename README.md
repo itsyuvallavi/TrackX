@@ -487,6 +487,7 @@ Variables used by TrackX services and tooling:
 | `PARSER_BASE_URL`           | Local Fastify parser service base URL              |
 | `API_PORT`                  | API service port                                   |
 | `API_BASE_URL`              | API service base URL                               |
+| `TRACKX_API_SECRET`         | Shared Cloudflare-to-Vercel API secret             |
 | `TELEGRAM_BOT_TOKEN`        | Telegram bot token                                 |
 | `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated allowlist of Telegram user IDs     |
 | `BOT_PORT`                  | Bot service port                                   |
@@ -503,7 +504,7 @@ App-specific variables read outside `@trackx/config`:
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key for dashboard auth sessions |
 | `WORKER_ENABLE_SCHEDULES`              | Enable BullMQ cron schedules (`true` / `false`)           |
 
-Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS`, `API_BASE_URL`, optional `TELEGRAM_WEBHOOK_SECRET`). See [docs/cloudflare-webhook.md](./docs/cloudflare-webhook.md).
+Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS`, `API_BASE_URL`, `TRACKX_API_SECRET`, optional `TELEGRAM_WEBHOOK_SECRET`). See [docs/cloudflare-webhook.md](./docs/cloudflare-webhook.md).
 
 Production scheduled summaries, if added, should use Vercel Cron HTTP routes rather than Redis/BullMQ.
 

@@ -3,6 +3,7 @@ export type WebhookEnv = {
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_ALLOWED_USER_IDS: string;
   API_BASE_URL: string;
+  TRACKX_API_SECRET: string;
   DEFAULT_TIMEZONE: string;
   DEFAULT_CURRENCY: string;
   TELEGRAM_WEBHOOK_SECRET?: string;

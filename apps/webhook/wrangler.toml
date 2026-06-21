@@ -10,5 +10,6 @@ DEFAULT_CURRENCY = "EUR"
 #   wrangler secret put TELEGRAM_BOT_TOKEN
 #   wrangler secret put TELEGRAM_ALLOWED_USER_IDS
 #   wrangler secret put API_BASE_URL
+#   wrangler secret put TRACKX_API_SECRET
 # Optional:
 #   wrangler secret put TELEGRAM_WEBHOOK_SECRET

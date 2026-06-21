@@ -222,14 +222,15 @@ You → Telegram → Cloudflare Worker → Vercel API → parser/OpenAI → Supa
 
 Set with `wrangler secret put` or Cloudflare dashboard. Local dev uses `apps/webhook/.dev.vars` (from `.dev.vars.example`):
 
-| Variable                    | Purpose                       |
-| --------------------------- | ----------------------------- |
-| `TELEGRAM_BOT_TOKEN`        | From BotFather                |
-| `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated allowlist     |
-| `API_BASE_URL`              | Public Vercel API base URL    |
-| `TELEGRAM_WEBHOOK_SECRET`   | Optional webhook verification |
-| `DEFAULT_TIMEZONE`          | In `wrangler.toml` [vars]     |
-| `DEFAULT_CURRENCY`          | In `wrangler.toml` [vars]     |
+| Variable                    | Purpose                                |
+| --------------------------- | -------------------------------------- |
+| `TELEGRAM_BOT_TOKEN`        | From BotFather                         |
+| `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated allowlist              |
+| `API_BASE_URL`              | Public Vercel API base URL             |
+| `TRACKX_API_SECRET`         | Shared Cloudflare-to-Vercel API secret |
+| `TELEGRAM_WEBHOOK_SECRET`   | Optional webhook verification          |
+| `DEFAULT_TIMEZONE`          | In `wrangler.toml` [vars]              |
+| `DEFAULT_CURRENCY`          | In `wrangler.toml` [vars]              |
 
 Setup details: [cloudflare-webhook.md](./cloudflare-webhook.md).
 

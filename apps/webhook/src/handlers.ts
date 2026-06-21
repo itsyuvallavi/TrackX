@@ -64,7 +64,9 @@ export async function handleCommand(
   }
 
   if (name === "/undo") {
-    const transaction = await options.api.undoLast();
+    const transaction = await options.api.undoLast({
+      telegramUserId: telegramUserId(message),
+    });
     return `Undid ${transaction.amount} ${transaction.currency}: ${transaction.description}.`;
   }
 
@@ -73,11 +75,18 @@ export async function handleCommand(
   }
 
   if (name === "/week" || name === "/budgets") {
-    return formatBudgets(await options.api.getBudgetStatus("week"));
+    return formatBudgets(
+      await options.api.getBudgetStatus({
+        period: "week",
+        telegramUserId: telegramUserId(message),
+      }),
+    );
   }
 
   if (name === "/month" || name === "/summary") {
-    const dashboard = await options.api.getMonthDashboard();
+    const dashboard = await options.api.getMonthDashboard({
+      telegramUserId: telegramUserId(message),
+    });
     return `Month: ${dashboard.expenses} ${dashboard.currency} spent, ${dashboard.income} ${dashboard.currency} income, ${dashboard.net} ${dashboard.currency} net.`;
   }
 

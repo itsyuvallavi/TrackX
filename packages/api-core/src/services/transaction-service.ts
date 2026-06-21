@@ -43,6 +43,7 @@ export const UserQuerySchema = z.object({
 
 export const UndoLastSchema = z.object({
   userId: z.string().uuid().optional(),
+  telegramUserId: z.string().min(1).optional(),
   source: TransactionSourceSchema.optional(),
 });
 
@@ -160,10 +161,11 @@ export function createTransactionService(
     },
 
     async undoLast(input) {
-      const removed = await transactions.undoLast(
-        await resolveUser(input.userId),
-        input.source,
-      );
+      const userId = await resolveMessageUser({
+        userId: input.userId,
+        telegramUserId: input.telegramUserId,
+      });
+      const removed = await transactions.undoLast(userId, input.source);
 
       if (!removed) {
         throw new ApiNotFoundError("Transaction not found.");
