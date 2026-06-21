@@ -548,6 +548,14 @@ See [PLAN.md](./PLAN.md) for the full implementation history.
 
 The Vercel API migration layer now exists under `apps/web/src/app/api` and calls `@trackx/api-core`. Parser behavior has been extracted to `@trackx/parser-core` so Vercel can parse in-process without a separate parser host. Next production-prep work should connect hosted Supabase and decide dashboard auth/protection before public deployment.
 
+The Vercel project must be configured as the `apps/web` Next.js app:
+
+- Framework: Next.js
+- Root Directory: `apps/web`
+- Build command/output directory: Vercel defaults for Next.js
+
+`apps/web/next.config.ts` sets the monorepo output tracing root and explicitly includes Prisma's generated client engine so Vercel API routes can use `@trackx/db` at runtime.
+
 ## Docker Stack
 
 Docker Compose can run local infrastructure only or the fuller local stack.

@@ -105,6 +105,14 @@ Local development uses the same names in root `.env`.
 - Free hobby tier is enough for personal use
 - Keeps UI and API on one platform if API routes live in the same project
 
+The Vercel project settings should point at the monorepo web app:
+
+- Framework: Next.js
+- Root Directory: `apps/web`
+- Build command/output directory: Vercel defaults for Next.js
+
+`apps/web/next.config.ts` traces from the monorepo root and includes Prisma's generated client engine. Without that, Vercel can build successfully but DB-backed API routes fail at runtime because the native Prisma query engine is missing from the function bundle.
+
 ### How it talks to the backend
 
 Current local implementation uses server-side fetch to `WEB_API_BASE_URL`:
