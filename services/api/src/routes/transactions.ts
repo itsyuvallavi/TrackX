@@ -7,6 +7,7 @@ import {
   ApiUpdateTransactionSchema,
   TransactionParamsSchema,
   UndoLastSchema,
+  UpdateLastCategorySchema,
   UserQuerySchema,
   type TransactionService,
 } from "../services/transaction-service.js";
@@ -83,6 +84,15 @@ export async function registerTransactionRoutes(
     try {
       const input = UndoLastSchema.parse(request.body ?? {});
       return reply.status(200).send(await service.undoLast(input));
+    } catch (error) {
+      return sendApiError(reply, error);
+    }
+  });
+
+  server.post("/transactions/update-last-category", async (request, reply) => {
+    try {
+      const input = UpdateLastCategorySchema.parse(request.body ?? {});
+      return reply.status(200).send(await service.updateLastCategory(input));
     } catch (error) {
       return sendApiError(reply, error);
     }

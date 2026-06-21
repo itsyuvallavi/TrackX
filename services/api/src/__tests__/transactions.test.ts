@@ -23,6 +23,8 @@ const config: ApiConfig = {
   apiPort: 4001,
   apiBaseUrl: "http://localhost:4001",
   parserBaseUrl: "http://localhost:4002",
+  openAiApiKey: undefined,
+  openAiModel: "gpt-4o-mini",
 };
 
 describe("transaction routes", () => {
@@ -110,6 +112,28 @@ describe("transaction routes", () => {
     expect(undone.json().id).toBe(second.id);
   });
 
+  it("updates the latest matching transaction category", async () => {
+    const server = await serverWithInMemoryService();
+    await createFoodTransaction(server, "food");
+    const second = await createFoodTransaction(server, "movie");
+
+    const updated = await server.inject({
+      method: "POST",
+      url: "/transactions/update-last-category",
+      payload: {
+        source: "manual",
+        category: "Restaurants / Cafes / Fun",
+      },
+    });
+
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json()).toMatchObject({
+      id: second.id,
+      description: "movie",
+      category: "Restaurants / Cafes / Fun",
+    });
+  });
+
   it("returns 400 for invalid create input", async () => {
     const server = await serverWithInMemoryService();
     const response = await server.inject({
@@ -133,6 +157,13 @@ function createInMemoryTransactionService(): TransactionService {
   const records: TransactionRecord[] = [];
   const users: UserRepository = {
     async ensureDefaultUser() {
+      return {
+        id: defaultUserId,
+        defaultCurrency: "EUR",
+        timezone: "Europe/Lisbon",
+      };
+    },
+    async ensureTelegramUser() {
       return {
         id: defaultUserId,
         defaultCurrency: "EUR",
@@ -177,6 +208,14 @@ function createInMemoryTransactionService(): TransactionService {
         (record) => record.userId === userId && record.deletedAt === null,
       );
     },
+    async listRecentByUser(userId, limit) {
+      return [...records]
+        .filter(
+          (record) => record.userId === userId && record.deletedAt === null,
+        )
+        .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+        .slice(0, limit);
+    },
     async softDelete(id, userId) {
       const record = records.find(
         (entry) =>
@@ -216,6 +255,23 @@ function createInMemoryTransactionService(): TransactionService {
           entry.userId === userId &&
           entry.deletedAt === null,
       );
+
+      if (!record) {
+        return null;
+      }
+
+      Object.assign(record, input, { updatedAt: new Date().toISOString() });
+      return record;
+    },
+    async updateLast(userId, source, input) {
+      const record = records
+        .filter(
+          (entry) =>
+            entry.userId === userId &&
+            entry.source === source &&
+            entry.deletedAt === null,
+        )
+        .at(-1);
 
       if (!record) {
         return null;

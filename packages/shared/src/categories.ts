@@ -19,6 +19,42 @@ export const CategoryNameSchema = z.enum(CATEGORY_NAMES);
 
 export type CategoryName = z.infer<typeof CategoryNameSchema>;
 
+const CATEGORY_ALIASES: Readonly<Record<string, CategoryName>> = {
+  cafe: "Restaurants / Cafes / Fun",
+  cafes: "Restaurants / Cafes / Fun",
+  food: "Restaurants / Cafes / Fun",
+  fun: "Restaurants / Cafes / Fun",
+  restaurant: "Restaurants / Cafes / Fun",
+  restaurants: "Restaurants / Cafes / Fun",
+  "restaurants cafes fun": "Restaurants / Cafes / Fun",
+  groceries: "Groceries",
+  grocery: "Groceries",
+  home: "Home",
+  income: "Income",
+  misc: "Misc",
+  rent: "Rent",
+  shopping: "Shopping",
+  subscriptions: "Subscriptions / Tools",
+  "subscriptions tools": "Subscriptions / Tools",
+  tools: "Subscriptions / Tools",
+  transport: "Transport",
+  travel: "Travel",
+  utilities: "Utilities",
+};
+
+export function resolveCategoryName(input: string): CategoryName | null {
+  const normalized = normalizeCategoryNameInput(input);
+  const exact = CATEGORY_NAMES.find(
+    (category) => normalizeCategoryNameInput(category) === normalized,
+  );
+
+  if (exact) {
+    return exact;
+  }
+
+  return CATEGORY_ALIASES[normalized] ?? null;
+}
+
 export const CategoryKindSchema = z.enum(["expense", "income"]);
 
 export type CategoryKind = z.infer<typeof CategoryKindSchema>;
@@ -39,3 +75,11 @@ export const DEFAULT_BUDGETS: readonly DefaultBudget[] = [
   { category: "Home", monthly: 75, weekly: 18 },
   { category: "Misc", monthly: 100, weekly: 25 },
 ];
+
+function normalizeCategoryNameInput(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}

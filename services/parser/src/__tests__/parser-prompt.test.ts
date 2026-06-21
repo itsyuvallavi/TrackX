@@ -55,6 +55,7 @@ describe("buildParserInstructions", () => {
 
     expect(instructions).toContain("pingo doce 32 eur");
     expect(instructions).toContain("coffee 3.5 eur");
+    expect(instructions).toContain("6.90 euro for a movie");
     expect(instructions).toContain("metro pass 40 eur");
     expect(instructions).toContain("€16 sushi");
     expect(instructions).toContain("refund from amazon 12 eur");
@@ -87,6 +88,8 @@ describe("buildParserInstructions", () => {
     expect(instructions).toContain("backpack");
     expect(instructions).toContain("passport photos");
     expect(instructions).toContain("paid someone back");
+    expect(instructions).toContain("movies");
+    expect(instructions).toContain("cinema");
   });
 
   it("includes examples for fresh eval failure modes", () => {

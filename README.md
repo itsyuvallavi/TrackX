@@ -277,8 +277,11 @@ Ownership:
 - Manual transaction CRUD routes backed by Prisma repositories.
 - Default local user resolution for local development.
 - Soft delete and undo-last transaction behavior.
+- Safe latest-transaction category correction for Telegram command flows.
 - Read-only budget status and dashboard summary routes.
 - Parser-backed `from-message` route that stores parse events and creates transactions.
+- API-owned natural edit intent routing for safe recent-transaction category updates.
+- Postgres-backed pending clarification state for follow-up parser answers.
 - EUR-first budget totals that count transactions in the same currency as the budget.
 
 Focused commands:
@@ -300,13 +303,14 @@ POST   /transactions/from-message
 PATCH  /transactions/:id
 DELETE /transactions/:id
 POST   /transactions/undo-last
+POST   /transactions/update-last-category
 GET    /budgets
 GET    /budgets/status?period=week|month
 GET    /dashboard/week
 GET    /dashboard/month
 ```
 
-`POST /transactions/from-message` calls the parser service, stores a parse event, creates transactions when parsing succeeds, and returns simple Telegram-friendly feedback. Clarification responses create no transactions.
+`POST /transactions/from-message` first honors any pending clarification. If there is no pending clarification, the API can use OpenAI to classify safe edit intents such as "move the movie to fun" against recent transactions. Confident category edits are validated and written by the API. New expense or income messages continue to the parser service, which stores a parse event, creates transactions when parsing succeeds, and returns simple Telegram-friendly feedback.
 
 Budget notes:
 
@@ -324,7 +328,8 @@ Ownership:
 - Telegram bot runtime.
 - Allowlist access control.
 - Normal text forwarding to API `POST /transactions/from-message`.
-- Commands for help, undo, weekly budgets, and month summary.
+- Telegram user id forwarding so the API can resolve pending clarifications.
+- Commands for help, undo, category correction, weekly budgets, and month summary.
 
 Focused commands:
 
@@ -407,21 +412,21 @@ The worker uses `REDIS_URL` from `.env`. In Docker, it uses `redis://redis:6379`
 
 Variables parsed by `@trackx/config`:
 
-| Variable                    | Purpose                                        |
-| --------------------------- | ---------------------------------------------- |
-| `DATABASE_URL`              | Postgres connection string                     |
-| `REDIS_URL`                 | Redis connection string                        |
-| `OPENAI_API_KEY`            | Optional parser service OpenAI key             |
-| `OPENAI_MODEL`              | OpenAI model used by parser service            |
-| `PARSER_PORT`               | Parser service port                            |
-| `PARSER_BASE_URL`           | Parser service base URL                        |
-| `API_PORT`                  | API service port                               |
-| `API_BASE_URL`              | API service base URL                           |
-| `TELEGRAM_BOT_TOKEN`        | Telegram bot token                             |
-| `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated allowlist of Telegram user IDs |
-| `BOT_PORT`                  | Bot service port                               |
-| `DEFAULT_TIMEZONE`          | Default user timezone                          |
-| `DEFAULT_CURRENCY`          | Default user currency                          |
+| Variable                    | Purpose                                            |
+| --------------------------- | -------------------------------------------------- |
+| `DATABASE_URL`              | Postgres connection string                         |
+| `REDIS_URL`                 | Redis connection string                            |
+| `OPENAI_API_KEY`            | Optional OpenAI key for parser and API edit intent |
+| `OPENAI_MODEL`              | OpenAI model used by parser and API edit intent    |
+| `PARSER_PORT`               | Parser service port                                |
+| `PARSER_BASE_URL`           | Parser service base URL                            |
+| `API_PORT`                  | API service port                                   |
+| `API_BASE_URL`              | API service base URL                               |
+| `TELEGRAM_BOT_TOKEN`        | Telegram bot token                                 |
+| `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated allowlist of Telegram user IDs     |
+| `BOT_PORT`                  | Bot service port                                   |
+| `DEFAULT_TIMEZONE`          | Default user timezone                              |
+| `DEFAULT_CURRENCY`          | Default user currency                              |
 
 App-specific variables read outside `@trackx/config`:
 
@@ -449,6 +454,7 @@ Docker stack secrets are passed through shell exports such as `TRACKX_OPENAI_API
 - Confirm the parser is running: `curl http://localhost:4002/health`
 - Add a real `OPENAI_API_KEY` to `.env` for live parsing
 - Include currency in the message, for example `spent 15 eur on food`
+- Natural category edits use the same API route, for example `move the movie to fun`
 
 ### Bot does not respond
 

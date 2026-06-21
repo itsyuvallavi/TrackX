@@ -48,6 +48,7 @@ export type MonthDashboardResponse = z.infer<
 export type TrackxApiClient = {
   createFromMessage(input: {
     message: string;
+    telegramUserId?: string | undefined;
     timezone: string;
     defaultCurrency?: string;
   }): Promise<FromMessageResponse>;
@@ -57,6 +58,15 @@ export type TrackxApiClient = {
     description: string;
     amount: number;
     currency: string;
+  }>;
+  updateLastCategory(input: {
+    category: string;
+    telegramUserId?: string | undefined;
+  }): Promise<{
+    description: string;
+    amount: number;
+    currency: string;
+    category: string;
   }>;
 };
 
@@ -93,6 +103,21 @@ export function createTrackxApiClient(baseUrl: string): TrackxApiClient {
           currency: z.string(),
         })
         .parse(response);
+    },
+    async updateLastCategory(input) {
+      const response = await requestJson(
+        `${baseUrl}/transactions/update-last-category`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            source: "telegram",
+            category: input.category,
+            telegramUserId: input.telegramUserId,
+          }),
+        },
+      );
+
+      return BotTransactionSchema.parse(response);
     },
   };
 }

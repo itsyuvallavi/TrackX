@@ -1,4 +1,5 @@
 // Owner: apps/webhook. Telegram message and command handling for webhook updates.
+import { resolveCategoryName } from "@trackx/shared";
 import type { TrackxApiClient } from "./api-client.js";
 import { deniedMessage, isTelegramUserAllowed } from "./allowlist.js";
 
@@ -34,11 +35,12 @@ export async function handleIncomingMessage(
   }
 
   if (text.startsWith("/")) {
-    return handleCommand(text, options);
+    return handleCommand(text, message, options);
   }
 
   const response = await options.api.createFromMessage({
     message: text,
+    telegramUserId: telegramUserId(message),
     timezone: options.timezone,
     defaultCurrency: options.defaultCurrency,
   });
@@ -46,8 +48,13 @@ export async function handleIncomingMessage(
   return response.feedback;
 }
 
+function telegramUserId(message: IncomingMessage): string | undefined {
+  return message.userId === undefined ? undefined : String(message.userId);
+}
+
 export async function handleCommand(
   command: string,
+  message: IncomingMessage,
   options: HandlerOptions,
 ): Promise<string> {
   const [name] = command.split(/\s+/);
@@ -59,6 +66,10 @@ export async function handleCommand(
   if (name === "/undo") {
     const transaction = await options.api.undoLast();
     return `Undid ${transaction.amount} ${transaction.currency}: ${transaction.description}.`;
+  }
+
+  if (name === "/category") {
+    return updateLastCategory(command, message, options);
   }
 
   if (name === "/week" || name === "/budgets") {
@@ -79,8 +90,33 @@ export function helpText(): string {
     "Examples:",
     "spent 15 eur on food",
     "earned 200 dollars",
-    "Commands: /week, /month, /budgets, /undo, /help",
+    "Commands: /week, /month, /budgets, /undo, /category last <category>, /help",
   ].join("\n");
+}
+
+async function updateLastCategory(
+  command: string,
+  message: IncomingMessage,
+  options: HandlerOptions,
+): Promise<string> {
+  const match = /^\/category\s+last\s+(.+)$/i.exec(command.trim());
+
+  if (!match) {
+    return "Use: /category last <category>";
+  }
+
+  const category = resolveCategoryName(match[1] ?? "");
+
+  if (!category) {
+    return "I do not recognize that category.";
+  }
+
+  const transaction = await options.api.updateLastCategory({
+    category,
+    telegramUserId: telegramUserId(message),
+  });
+
+  return `Updated ${transaction.description} to ${category}.`;
 }
 
 function formatBudgets(

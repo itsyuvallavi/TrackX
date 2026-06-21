@@ -15,6 +15,7 @@ export type UserRecord = {
 
 export type UserRepository = {
   ensureDefaultUser(): Promise<UserRecord>;
+  ensureTelegramUser(telegramUserId: string): Promise<UserRecord>;
   findById(userId: string): Promise<UserRecord | null>;
 };
 
@@ -39,6 +40,34 @@ export function createPrismaUserRepository(
       });
 
       return user;
+    },
+
+    async ensureTelegramUser(telegramUserId) {
+      const existing = await prisma.user.findUnique({
+        where: { telegramUserId },
+        select: { id: true, defaultCurrency: true, timezone: true },
+      });
+
+      if (existing) {
+        return existing;
+      }
+
+      return prisma.user.upsert({
+        where: { id: DEFAULT_LOCAL_USER_ID },
+        create: {
+          id: DEFAULT_LOCAL_USER_ID,
+          telegramUserId,
+          email: DEFAULT_LOCAL_USER_EMAIL,
+          defaultCurrency: "EUR",
+          timezone: DEFAULT_LOCAL_TIMEZONE,
+        },
+        update: {
+          telegramUserId,
+          defaultCurrency: "EUR",
+          timezone: DEFAULT_LOCAL_TIMEZONE,
+        },
+        select: { id: true, defaultCurrency: true, timezone: true },
+      });
     },
 
     async findById(userId) {

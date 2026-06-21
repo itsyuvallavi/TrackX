@@ -1,4 +1,5 @@
 // Owner: apps/bot. Telegram command and text handlers for TrackX.
+import { resolveCategoryName } from "@trackx/shared";
 import type { TrackxApiClient } from "./api-client.js";
 import { deniedMessage, isTelegramUserAllowed } from "./allowlist.js";
 
@@ -37,6 +38,7 @@ export async function handleTextMessage(
 
   const response = await options.api.createFromMessage({
     message: text,
+    telegramUserId: telegramUserId(ctx),
     timezone: options.timezone,
     defaultCurrency: options.defaultCurrency,
   });
@@ -68,6 +70,11 @@ export async function handleCommand(
     return;
   }
 
+  if (name === "/category") {
+    await replyWithCategoryUpdate(ctx, options, command);
+    return;
+  }
+
   if (name === "/week" || name === "/budgets") {
     await replyWithBudgets(ctx, await options.api.getBudgetStatus("week"));
     return;
@@ -90,8 +97,12 @@ export function helpText(): string {
     "Examples:",
     "spent 15 eur on food",
     "earned 200 dollars",
-    "Commands: /week, /month, /budgets, /undo, /help",
+    "Commands: /week, /month, /budgets, /undo, /category last <category>, /help",
   ].join("\n");
+}
+
+function telegramUserId(ctx: BotContext): string | undefined {
+  return ctx.from?.id === undefined ? undefined : String(ctx.from.id);
 }
 
 async function ensureAllowed(
@@ -106,6 +117,33 @@ async function ensureAllowed(
   }
 
   return true;
+}
+
+async function replyWithCategoryUpdate(
+  ctx: BotContext,
+  options: CommandHandlerOptions,
+  command: string,
+): Promise<void> {
+  const match = /^\/category\s+last\s+(.+)$/i.exec(command.trim());
+
+  if (!match) {
+    await ctx.reply("Use: /category last <category>");
+    return;
+  }
+
+  const category = resolveCategoryName(match[1] ?? "");
+
+  if (!category) {
+    await ctx.reply("I do not recognize that category.");
+    return;
+  }
+
+  const transaction = await options.api.updateLastCategory({
+    category,
+    telegramUserId: telegramUserId(ctx),
+  });
+
+  await ctx.reply(`Updated ${transaction.description} to ${category}.`);
 }
 
 async function replyWithBudgets(

@@ -6,4 +6,5 @@ export * from "./category-rules.js";
 export * from "./currencies.js";
 export * from "./date-helpers.js";
 export * from "./parser-schemas.js";
+export * from "./transaction-intent-schemas.js";
 export * from "./transaction-schemas.js";

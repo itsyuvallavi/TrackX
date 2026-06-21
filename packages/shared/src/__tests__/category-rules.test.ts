@@ -9,6 +9,8 @@ describe("matchCategory", () => {
     ["Bolt Food 14 eur", "Restaurants / Cafes / Fun"],
     ["Uber Eats dinner 21 eur", "Restaurants / Cafes / Fun"],
     ["Too Good To Go 5 eur", "Restaurants / Cafes / Fun"],
+    ["6.90 euro for a movie", "Restaurants / Cafes / Fun"],
+    ["cinema tickets 13 eur", "Restaurants / Cafes / Fun"],
     ["Pingo Doce 32 eur", "Groceries"],
     ["Maria Granel 10 eur", "Groceries"],
     ["Celeiro vitamins 18 eur", "Groceries"],

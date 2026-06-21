@@ -60,6 +60,7 @@ export type UpdateTransactionRecordInput = Partial<
 export type TransactionRepository = {
   create(input: CreateTransactionRecordInput): Promise<TransactionRecord>;
   listByUser(userId: string): Promise<TransactionRecord[]>;
+  listRecentByUser(userId: string, limit: number): Promise<TransactionRecord[]>;
   softDelete(id: string, userId: string): Promise<TransactionRecord | null>;
   undoLast(
     userId: string,
@@ -68,6 +69,11 @@ export type TransactionRepository = {
   update(
     id: string,
     userId: string,
+    input: UpdateTransactionRecordInput,
+  ): Promise<TransactionRecord | null>;
+  updateLast(
+    userId: string,
+    source: TransactionSource,
     input: UpdateTransactionRecordInput,
   ): Promise<TransactionRecord | null>;
 };
@@ -101,6 +107,17 @@ export function createPrismaTransactionRepository(
       const transactions = await prisma.transaction.findMany({
         where: { userId, deletedAt: null },
         orderBy: { transactionDate: "desc" },
+        include: { category: true },
+      });
+
+      return transactions.map(mapTransaction);
+    },
+
+    async listRecentByUser(userId, limit) {
+      const transactions = await prisma.transaction.findMany({
+        where: { userId, deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        take: limit,
         include: { category: true },
       });
 
@@ -175,6 +192,24 @@ export function createPrismaTransactionRepository(
       });
 
       return mapTransaction(transaction);
+    },
+
+    async updateLast(userId, source, input) {
+      const existing = await prisma.transaction.findFirst({
+        where: {
+          userId,
+          source,
+          deletedAt: null,
+        },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      });
+
+      if (!existing) {
+        return null;
+      }
+
+      return this.update(existing.id, userId, input);
     },
   };
 }

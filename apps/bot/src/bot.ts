@@ -27,6 +27,9 @@ export function buildTrackxBot(options: BuildTrackxBotOptions): Telegraf {
   bot.start((ctx) => handleCommand(ctx, commandOptions, "/start"));
   bot.help((ctx) => handleCommand(ctx, commandOptions, "/help"));
   bot.command("undo", (ctx) => handleCommand(ctx, commandOptions, "/undo"));
+  bot.command("category", (ctx) =>
+    handleCommand(ctx, commandOptions, ctx.message.text),
+  );
   bot.command("week", (ctx) => handleCommand(ctx, commandOptions, "/week"));
   bot.command("month", (ctx) => handleCommand(ctx, commandOptions, "/month"));
   bot.command("summary", (ctx) =>

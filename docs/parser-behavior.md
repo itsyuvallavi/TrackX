@@ -22,7 +22,7 @@ Rules are applied from most specific to most generic. This prevents broad words 
 6. Home: IKEA, kitchen, cleaning, furniture, towels, bedding.
 7. Travel: flight, Ryanair, El Al, hotel.
 8. Shopping: Amazon, Zara, electronics, clothes.
-9. Generic restaurant/cafe wording.
+9. Generic restaurant/cafe/fun wording: cafe, coffee, dinner, drinks, food, movie, cinema.
 10. Fallback: Misc.
 
 ## Required Examples
@@ -31,6 +31,7 @@ Rules are applied from most specific to most generic. This prevents broad words 
 | ------------------------ | ------------------------- |
 | `bolt ride 7 eur`        | Transport                 |
 | `bolt food 14 eur`       | Restaurants / Cafes / Fun |
+| `6.90 euro for a movie`  | Restaurants / Cafes / Fun |
 | `pingo doce 32 eur`      | Groceries                 |
 | `vodafone 82 eur`        | Utilities                 |
 | `ikea shelf 35 eur`      | Home                      |

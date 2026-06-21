@@ -105,6 +105,74 @@ describe("from-message route", () => {
     expect(harness.parseEvents[0]?.status).toBe("clarification");
   });
 
+  it("uses a pending clarification to complete the original message", async () => {
+    const harness = await createHarness([
+      clarificationResponse(),
+      {
+        confidence: 0.9,
+        transactions: [
+          {
+            amount: 0.89,
+            currency: "EUR",
+            type: "expense",
+            category: "Groceries",
+            description: "garlic",
+            merchant: null,
+            confidence: 0.9,
+          },
+        ],
+        needsClarification: false,
+        clarifyingQuestion: null,
+        parser: "openai",
+      },
+    ]);
+
+    const first = await harness.server.inject({
+      method: "POST",
+      url: "/transactions/from-message",
+      payload: {
+        message: "0.89 for garlic",
+        telegramUserId: "123",
+        timezone: "Europe/Lisbon",
+      },
+    });
+    const second = await harness.server.inject({
+      method: "POST",
+      url: "/transactions/from-message",
+      payload: {
+        message: "euro",
+        telegramUserId: "123",
+        timezone: "Europe/Lisbon",
+      },
+    });
+
+    expect(first.statusCode).toBe(201);
+    expect(second.statusCode).toBe(201);
+    expect(second.json()).toMatchObject({
+      needsClarification: false,
+      feedback: "Logged 0.89 EUR for Groceries.",
+      transactions: [
+        {
+          amount: 0.89,
+          currency: "EUR",
+          category: "Groceries",
+          rawMessage: "0.89 for garlic",
+        },
+      ],
+    });
+    expect(harness.parserMessages).toEqual([
+      "0.89 for garlic",
+      "Original message: 0.89 for garlic. Clarification answer: euro.",
+    ]);
+    expect(harness.pendingClarifications).toMatchObject([
+      {
+        originalMessage: "0.89 for garlic",
+        telegramUserId: "123",
+        status: "resolved",
+      },
+    ]);
+  });
+
   it("stores failure events when parser fails", async () => {
     const harness = await createHarness(new Error("parser unavailable"));
     const response = await harness.server.inject({

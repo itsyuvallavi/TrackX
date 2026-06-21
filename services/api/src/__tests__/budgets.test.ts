@@ -24,6 +24,8 @@ const config: ApiConfig = {
   apiPort: 4001,
   apiBaseUrl: "http://localhost:4001",
   parserBaseUrl: "http://localhost:4002",
+  openAiApiKey: undefined,
+  openAiModel: "gpt-4o-mini",
 };
 
 describe("budget routes", () => {

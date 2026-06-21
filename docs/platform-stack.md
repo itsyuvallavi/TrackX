@@ -49,7 +49,7 @@ It owns:
 
 - Transaction CRUD
 - Budget and dashboard read endpoints
-- `POST /transactions/from-message` (orchestrates parser + DB)
+- `POST /transactions/from-message` (orchestrates edit intent, parser, and DB)
 - Parse event storage
 - Undo, budget status, month/week summaries
 
@@ -73,13 +73,13 @@ It owns:
 
 Set in **Vercel → Project → Environment Variables** (or `vercel env`), not committed to git:
 
-| Variable           | Purpose                                           |
-| ------------------ | ------------------------------------------------- |
-| `DATABASE_URL`     | Supabase Postgres (**pooler** URL for serverless) |
-| `OPENAI_API_KEY`   | Parser / OpenAI calls                             |
-| `OPENAI_MODEL`     | Parser model, defaults to `gpt-4o-mini`           |
-| `DEFAULT_TIMEZONE` | Default user timezone                             |
-| `DEFAULT_CURRENCY` | Default currency                                  |
+| Variable           | Purpose                                            |
+| ------------------ | -------------------------------------------------- |
+| `DATABASE_URL`     | Supabase Postgres (**pooler** URL for serverless)  |
+| `OPENAI_API_KEY`   | Parser and API edit-intent OpenAI calls            |
+| `OPENAI_MODEL`     | Parser and intent model, defaults to `gpt-4o-mini` |
+| `DEFAULT_TIMEZONE` | Default user timezone                              |
+| `DEFAULT_CURRENCY` | Default currency                                   |
 
 Local development uses the same names in root `.env`.
 

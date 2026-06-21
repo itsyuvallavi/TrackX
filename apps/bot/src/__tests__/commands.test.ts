@@ -16,11 +16,42 @@ describe("handleTextMessage", () => {
 
   it("forwards normal text to the API and replies with feedback", async () => {
     const ctx = createContext(123, "spent 15 eur on food");
+    const calls: Array<{
+      message: string;
+      telegramUserId?: string | undefined;
+      timezone: string;
+      defaultCurrency?: string | undefined;
+    }> = [];
 
-    await handleTextMessage(ctx, options());
+    await handleTextMessage(
+      ctx,
+      options({
+        api: fakeApi({
+          async createFromMessage(input) {
+            calls.push(input);
+
+            return {
+              transactions: [],
+              needsClarification: false,
+              clarifyingQuestion: null,
+              feedback: "Logged 15 EUR for Restaurants / Cafes / Fun.",
+              parser: "openai",
+            };
+          },
+        }),
+      }),
+    );
 
     expect(ctx.replies).toEqual([
       "Logged 15 EUR for Restaurants / Cafes / Fun.",
+    ]);
+    expect(calls).toEqual([
+      {
+        message: "spent 15 eur on food",
+        telegramUserId: "123",
+        timezone: "Europe/Lisbon",
+        defaultCurrency: "EUR",
+      },
     ]);
   });
 
@@ -47,18 +78,57 @@ describe("handleTextMessage", () => {
 
     expect(ctx.replies).toEqual(["Undid 15 EUR: food."]);
   });
+
+  it("updates the latest transaction category", async () => {
+    const ctx = createContext(123, "/category last fun");
+    const calls: Array<{
+      category: string;
+      telegramUserId?: string | undefined;
+    }> = [];
+
+    await handleTextMessage(
+      ctx,
+      options({
+        api: fakeApi({
+          async updateLastCategory(input) {
+            calls.push(input);
+            return {
+              description: "movie",
+              amount: 6.9,
+              currency: "EUR",
+              category: "Restaurants / Cafes / Fun",
+            };
+          },
+        }),
+      }),
+    );
+
+    expect(calls).toEqual([
+      {
+        category: "Restaurants / Cafes / Fun",
+        telegramUserId: "123",
+      },
+    ]);
+    expect(ctx.replies).toEqual([
+      "Updated movie to Restaurants / Cafes / Fun.",
+    ]);
+  });
 });
 
-function options() {
+function options(
+  overrides: Partial<{
+    api: TrackxApiClient;
+  }> = {},
+) {
   return {
     allowedUserIds: ["123"],
-    api: fakeApi(),
+    api: overrides.api ?? fakeApi(),
     timezone: "Europe/Lisbon",
     defaultCurrency: "EUR",
   };
 }
 
-function fakeApi(): TrackxApiClient {
+function fakeApi(overrides: Partial<TrackxApiClient> = {}): TrackxApiClient {
   return {
     async createFromMessage() {
       return {
@@ -100,6 +170,15 @@ function fakeApi(): TrackxApiClient {
         currency: "EUR",
       };
     },
+    async updateLastCategory() {
+      return {
+        description: "food",
+        amount: 15,
+        currency: "EUR",
+        category: "Groceries",
+      };
+    },
+    ...overrides,
   };
 }
 

@@ -8,14 +8,23 @@ import {
 import type { ParserClient } from "../clients/parser-client.js";
 import type { ParseEventRepository } from "../repositories/parse-events.js";
 import type {
+  PendingClarificationRecord,
+  PendingClarificationRepository,
+  PendingClarificationScope,
+} from "../repositories/pending-clarifications.js";
+import type {
   TransactionRecord,
   TransactionRepository,
 } from "../repositories/transactions.js";
+import type { MessageIntentService } from "./message-intent-service.js";
 import type { TransactionService } from "./transaction-service.js";
+
+const CLARIFICATION_TTL_MS = 30 * 60 * 1000;
 
 export const FromMessageSchema = z.object({
   message: z.string().min(1),
   userId: z.string().uuid().optional(),
+  telegramUserId: z.string().min(1).optional(),
   timezone: z.string().min(1),
   defaultCurrency: CurrencySchema.optional(),
 });
@@ -37,13 +46,38 @@ export type FromMessageService = {
 export function createFromMessageService(
   parser: ParserClient,
   parseEvents: ParseEventRepository,
+  pendingClarifications: PendingClarificationRepository,
   transactions: TransactionService,
+  messageIntents?: MessageIntentService,
 ): FromMessageService {
   return {
     async createFromMessage(input) {
-      const userId = await transactions.resolveUser(input.userId);
+      const userId = await transactions.resolveMessageUser({
+        userId: input.userId,
+        telegramUserId: input.telegramUserId,
+      });
+      const scope = clarificationScope(userId, input.telegramUserId);
+      const pending = await pendingClarifications.findActive(scope);
+      const parserMessage = pending
+        ? combineClarification(pending, input.message)
+        : input.message;
+      const rawMessage = pending?.originalMessage ?? input.message;
+
+      if (!pending && messageIntents) {
+        const intentResult = await tryHandleIntent(messageIntents, {
+          userId,
+          message: input.message,
+          timezone: input.timezone,
+          defaultCurrency: input.defaultCurrency,
+        });
+
+        if (intentResult.handled) {
+          return intentResult;
+        }
+      }
+
       const parserRequest = ParserRequestSchema.parse({
-        message: input.message,
+        message: parserMessage,
         timezone: input.timezone,
         defaultCurrency: input.defaultCurrency,
       });
@@ -52,9 +86,16 @@ export function createFromMessageService(
         const parsed = await parser.parseTransaction(parserRequest);
 
         if (parsed.needsClarification) {
+          await pendingClarifications.saveActive({
+            ...scope,
+            originalMessage: rawMessage,
+            clarifyingQuestion: parsed.clarifyingQuestion,
+            expiresAt: new Date(Date.now() + CLARIFICATION_TTL_MS),
+          });
+
           await parseEvents.create({
             userId,
-            rawMessage: input.message,
+            rawMessage: parserMessage,
             parserResponse: parsed,
             status: "clarification",
           });
@@ -70,15 +111,17 @@ export function createFromMessageService(
 
         const created = await createTransactionsFromParsed(
           transactions,
-          input.message,
+          rawMessage,
           userId,
           parsed,
           input.timezone,
         );
 
+        await pendingClarifications.resolveActive(scope);
+
         await parseEvents.create({
           userId,
-          rawMessage: input.message,
+          rawMessage: parserMessage,
           parserResponse: parsed,
           status: "success",
         });
@@ -93,7 +136,7 @@ export function createFromMessageService(
       } catch (error) {
         await parseEvents.create({
           userId,
-          rawMessage: input.message,
+          rawMessage: parserMessage,
           parserResponse: {
             error:
               error instanceof Error ? error.message : "Unknown parser error.",
@@ -105,6 +148,34 @@ export function createFromMessageService(
       }
     },
   };
+}
+
+async function tryHandleIntent(
+  messageIntents: MessageIntentService,
+  input: Parameters<MessageIntentService["tryHandle"]>[0],
+) {
+  try {
+    return await messageIntents.tryHandle(input);
+  } catch {
+    return { handled: false } as const;
+  }
+}
+
+function clarificationScope(
+  userId: string,
+  telegramUserId: string | undefined,
+): PendingClarificationScope {
+  return {
+    userId,
+    telegramUserId: telegramUserId ?? null,
+  };
+}
+
+function combineClarification(
+  pending: PendingClarificationRecord,
+  answer: string,
+): string {
+  return `Original message: ${pending.originalMessage}. Clarification answer: ${answer}.`;
 }
 
 async function createTransactionsFromParsed(

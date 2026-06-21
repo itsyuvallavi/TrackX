@@ -26,6 +26,7 @@ yarn-error.log*
 # Runtime data
 .turbo/
 .vercel/
+apps/webhook/.wrangler/
 
 # OS and editor files
 .DS_Store

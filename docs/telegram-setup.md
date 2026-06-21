@@ -54,7 +54,23 @@ Then send a normal message to the bot.
 spent 15 eur on food
 ```
 
-The bot forwards text to `POST /transactions/from-message` and replies with the API feedback.
+The bot forwards text and the Telegram user id to
+`POST /transactions/from-message`, then replies with the API feedback.
+
+If the parser asks for one missing detail, the API stores the original message
+as a pending clarification in Postgres. The next non-command message from the
+same Telegram user is parsed as the clarification answer, so a flow like
+`0.89 for garlic` then `euro` can complete one transaction. Pending
+clarifications are resolved on success and expire after a short window.
+
+Use `/category last <category>` to move the latest Telegram transaction to a
+different category. Category aliases such as `fun`, `groceries`, and
+`subscriptions` are accepted.
+
+You can also use normal chat for recent category corrections, for example
+`move the movie to fun`. The API asks OpenAI for a structured edit intent, then
+validates the recent transaction id and category before updating Postgres. If
+the message is ambiguous, the bot asks one clarifying question instead.
 
 ## Docker Stack
 

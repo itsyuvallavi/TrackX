@@ -2,6 +2,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { deleteTransactionAction } from "@/lib/actions";
 
 type DeleteTransactionButtonProps = {
@@ -13,6 +14,7 @@ export function DeleteTransactionButton({
   transactionId,
   description,
 }: DeleteTransactionButtonProps) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   function handleDelete() {
@@ -29,7 +31,10 @@ export function DeleteTransactionButton({
 
       if (!result.ok) {
         window.alert(result.error);
+        return;
       }
+
+      router.refresh();
     });
   }
 

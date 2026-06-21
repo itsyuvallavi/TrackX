@@ -1,29 +1,22 @@
 // Owner: services/api. In-memory helpers for from-message route tests.
 import type { ApiConfig } from "@trackx/config";
-import type { ParserResponse } from "@trackx/shared";
+import type { ParserResponse, TransactionIntentResponse } from "@trackx/shared";
 import { buildApiServer } from "../server.js";
+import type { TransactionIntentClient } from "../clients/intent-client.js";
 import type { ParserClient } from "../clients/parser-client.js";
 import type {
   ParseEventRepository,
   ParseEventRecord,
 } from "../repositories/parse-events.js";
-import type { UserRepository } from "../repositories/users.js";
-import {
-  createFromMessageService,
-  type FromMessageService,
-} from "../services/from-message-service.js";
-import {
-  createTransactionService,
-  type TransactionService,
-} from "../services/transaction-service.js";
-import type {
-  CreateTransactionRecordInput,
-  TransactionRecord,
-  TransactionRepository,
-  UpdateTransactionRecordInput,
-} from "../repositories/transactions.js";
+import type { PendingClarificationRecord } from "../repositories/pending-clarifications.js";
+import { createInMemoryPendingClarificationRepository } from "./in-memory-pending-clarifications.js";
+import { createInMemoryTransactionService } from "./in-memory-transactions.js";
+import { createFromMessageService } from "../services/from-message-service.js";
+import { createMessageIntentService } from "../services/message-intent-service.js";
+import type { TransactionService } from "../services/transaction-service.js";
+import type { TransactionRecord } from "../repositories/transactions.js";
 
-const defaultUserId = "00000000-0000-4000-8000-000000000001";
+export { defaultUserId, transactionRecord } from "./in-memory-transactions.js";
 const config: ApiConfig = {
   databaseUrl: "postgresql://postgres:postgres@localhost:5432/trackx",
   redisUrl: "redis://localhost:6379",
@@ -32,16 +25,34 @@ const config: ApiConfig = {
   apiPort: 4001,
   apiBaseUrl: "http://localhost:4001",
   parserBaseUrl: "http://localhost:4002",
+  openAiApiKey: undefined,
+  openAiModel: "gpt-4o-mini",
 };
 
-export async function createHarness(parserResult: ParserResponse | Error) {
-  const records: TransactionRecord[] = [];
+export async function createHarness(
+  parserResult: ParserResponse | Error | Array<ParserResponse | Error>,
+  options: {
+    intentResult?:
+      | TransactionIntentResponse
+      | Error
+      | Array<TransactionIntentResponse | Error>;
+    seedRecords?: TransactionRecord[];
+  } = {},
+) {
+  const records: TransactionRecord[] = [...(options.seedRecords ?? [])];
   const parseEvents: ParseEventRecord[] = [];
+  const parserMessages: string[] = [];
+  const intentMessages: string[] = [];
+  const pendingClarifications: PendingClarificationRecord[] = [];
   const transactionService = createInMemoryTransactionService(records);
   const fromMessageService = createInMemoryFromMessageService(
     parserResult,
     parseEvents,
+    parserMessages,
+    intentMessages,
+    pendingClarifications,
     transactionService,
+    options.intentResult,
   );
   const server = await buildApiServer({
     config,
@@ -49,7 +60,14 @@ export async function createHarness(parserResult: ParserResponse | Error) {
     fromMessageService,
   });
 
-  return { server, records, parseEvents };
+  return {
+    server,
+    records,
+    parseEvents,
+    parserMessages,
+    intentMessages,
+    pendingClarifications,
+  };
 }
 
 export function foodResponse(): ParserResponse {
@@ -115,18 +133,53 @@ export function clarificationResponse(): ParserResponse {
   };
 }
 
+export function intentResponse(
+  overrides: Partial<TransactionIntentResponse> = {},
+): TransactionIntentResponse {
+  return {
+    action: "create_transaction",
+    transactionId: null,
+    category: null,
+    clarifyingQuestion: null,
+    confidence: 1,
+    reason: "test intent",
+    parser: "openai",
+    ...overrides,
+  };
+}
+
 function createInMemoryFromMessageService(
-  parserResult: ParserResponse | Error,
+  parserResult: ParserResponse | Error | Array<ParserResponse | Error>,
   parseEvents: ParseEventRecord[],
+  parserMessages: string[],
+  intentMessages: string[],
+  pendingClarifications: PendingClarificationRecord[],
   transactions: TransactionService,
-): FromMessageService {
+  intentResult?:
+    | TransactionIntentResponse
+    | Error
+    | Array<TransactionIntentResponse | Error>,
+) {
+  const parserResults = Array.isArray(parserResult)
+    ? [...parserResult]
+    : [parserResult];
+  let parserCallCount = 0;
   const parser: ParserClient = {
-    async parseTransaction() {
-      if (parserResult instanceof Error) {
-        throw parserResult;
+    async parseTransaction(input) {
+      parserMessages.push(input.message);
+      const result =
+        parserResults[Math.min(parserCallCount, parserResults.length - 1)];
+      parserCallCount += 1;
+
+      if (result instanceof Error) {
+        throw result;
       }
 
-      return parserResult;
+      if (!result) {
+        throw new Error("No parser result configured.");
+      }
+
+      return result;
     },
   };
   const events: ParseEventRepository = {
@@ -143,72 +196,56 @@ function createInMemoryFromMessageService(
       return event;
     },
   };
+  const pending = createInMemoryPendingClarificationRepository(
+    pendingClarifications,
+  );
+  const intentService =
+    intentResult === undefined
+      ? undefined
+      : createMessageIntentService(
+          createIntentClient(intentResult, intentMessages),
+          transactions,
+        );
 
-  return createFromMessageService(parser, events, transactions);
+  return createFromMessageService(
+    parser,
+    events,
+    pending,
+    transactions,
+    intentService,
+  );
 }
 
-function createInMemoryTransactionService(
-  records: TransactionRecord[],
-): TransactionService {
-  const users: UserRepository = {
-    async ensureDefaultUser() {
-      return userRecord();
-    },
-    async findById(userId) {
-      return userId === defaultUserId ? userRecord() : null;
+function createIntentClient(
+  intentResult:
+    | TransactionIntentResponse
+    | Error
+    | Array<TransactionIntentResponse | Error>,
+  intentMessages: string[],
+): TransactionIntentClient {
+  const intentResults = Array.isArray(intentResult)
+    ? [...intentResult]
+    : [intentResult];
+  let intentCallCount = 0;
+
+  return {
+    async classify(input) {
+      intentMessages.push(input.message);
+      const result =
+        intentResults[Math.min(intentCallCount, intentResults.length - 1)];
+      intentCallCount += 1;
+
+      if (result instanceof Error) {
+        throw result;
+      }
+
+      if (!result) {
+        throw new Error("No intent result configured.");
+      }
+
+      return result;
     },
   };
-  const transactions: TransactionRepository = {
-    async create(input) {
-      const record = toTransactionRecord(input, new Date().toISOString());
-      records.push(record);
-      return record;
-    },
-    async listByUser(userId) {
-      return records.filter(
-        (record) => record.userId === userId && record.deletedAt === null,
-      );
-    },
-    async softDelete(id, userId) {
-      const record = findActive(records, id, userId);
-
-      if (!record) {
-        return null;
-      }
-
-      record.deletedAt = new Date().toISOString();
-      return record;
-    },
-    async undoLast(userId, source) {
-      const record = records
-        .filter(
-          (entry) =>
-            entry.userId === userId &&
-            entry.deletedAt === null &&
-            (!source || entry.source === source),
-        )
-        .at(-1);
-
-      if (!record) {
-        return null;
-      }
-
-      record.deletedAt = new Date().toISOString();
-      return record;
-    },
-    async update(id, userId, input: UpdateTransactionRecordInput) {
-      const record = findActive(records, id, userId);
-
-      if (!record) {
-        return null;
-      }
-
-      Object.assign(record, input, { updatedAt: new Date().toISOString() });
-      return record;
-    },
-  };
-
-  return createTransactionService(users, transactions);
 }
 
 function parsedExpense(amount: number, description: string) {
@@ -220,48 +257,5 @@ function parsedExpense(amount: number, description: string) {
     description,
     merchant: null,
     confidence: 0.9,
-  };
-}
-
-function userRecord() {
-  return {
-    id: defaultUserId,
-    defaultCurrency: "EUR" as const,
-    timezone: "Europe/Lisbon",
-  };
-}
-
-function findActive(
-  records: TransactionRecord[],
-  id: string,
-  userId: string,
-): TransactionRecord | null {
-  return (
-    records.find(
-      (entry) =>
-        entry.id === id && entry.userId === userId && entry.deletedAt === null,
-    ) ?? null
-  );
-}
-
-function toTransactionRecord(
-  input: CreateTransactionRecordInput,
-  now: string,
-): TransactionRecord {
-  return {
-    id: crypto.randomUUID(),
-    userId: input.userId,
-    type: input.type,
-    amount: input.amount,
-    currency: input.currency,
-    category: input.category,
-    description: input.description,
-    merchant: input.merchant,
-    source: input.source,
-    rawMessage: input.rawMessage,
-    transactionDate: input.transactionDate,
-    createdAt: now,
-    updatedAt: now,
-    deletedAt: null,
   };
 }

@@ -44,17 +44,23 @@ enum ParseStatus {
   failure
 }
 
+enum PendingClarificationStatus {
+  active
+  resolved
+}
+
 model User {
-  id              String        @id @default(uuid()) @db.Uuid
-  telegramUserId  String?       @unique
-  email           String?       @unique
-  defaultCurrency Currency      @default(EUR)
-  timezone        String        @default("Europe/Lisbon")
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  budgets         Budget[]
-  parseEvents     ParseEvent[]
-  transactions    Transaction[]
+  id                    String                 @id @default(uuid()) @db.Uuid
+  telegramUserId        String?                @unique
+  email                 String?                @unique
+  defaultCurrency       Currency               @default(EUR)
+  timezone              String                 @default("Europe/Lisbon")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  budgets               Budget[]
+  parseEvents           ParseEvent[]
+  pendingClarifications PendingClarification[]
+  transactions          Transaction[]
 
   @@map("users")
 }
@@ -146,4 +152,22 @@ model ParseEvent {
   @@index([userId, createdAt])
   @@index([status])
   @@map("parse_events")
+}
+
+model PendingClarification {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  userId             String                     @db.Uuid
+  telegramUserId     String?
+  originalMessage    String
+  clarifyingQuestion String?
+  status             PendingClarificationStatus @default(active)
+  expiresAt          DateTime
+  resolvedAt         DateTime?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  user               User                       @relation(fields: [userId], references: [id])
+
+  @@index([userId, status, expiresAt])
+  @@index([telegramUserId, status])
+  @@map("pending_clarifications")
 }

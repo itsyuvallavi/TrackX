@@ -15,7 +15,11 @@ TrackX is a TypeScript monorepo for a Telegram-first expense tracker with a web 
 | Config        | `packages/config` | Validated env parsing for API, parser, bot, worker                         |
 | Database      | `packages/db`     | Prisma schema, migrations, seed data, client                               |
 
-Postgres is the source of truth for users, transactions, budgets, and parse events. Redis backs BullMQ job state only for the local worker experiment. The production path does not require Redis/BullMQ unless a future queue workload appears. The web app does not talk to Postgres or Redis directly.
+Postgres is the source of truth for users, transactions, budgets, parse events,
+and pending clarification state. Redis backs BullMQ job state only for the local
+worker experiment. The production path does not require Redis/BullMQ unless a
+future queue workload appears. The web app does not talk to Postgres or Redis
+directly.
 
 ## Telegram Message Flow
 
@@ -23,17 +27,35 @@ Postgres is the source of truth for users, transactions, budgets, and parse even
 User message in Telegram
   -> Cloudflare Worker (apps/webhook) OR apps/bot (local polling)
   -> POST /transactions/from-message on services/api
+  -> if pending clarification exists: combine with original message
+  -> if no pending clarification: classify safe edit intent against recent transactions
+  -> if confident category edit: services/api validates and updates Postgres
   -> POST /parse-transaction on services/parser
   -> shared Zod validation + category guidance
   -> services/api stores parse event
+  -> if parser needs clarification: services/api stores pending clarification
   -> if parsed successfully: create transaction(s) in Postgres
+  -> if pending clarification existed: mark it resolved
   -> API returns Telegram-friendly feedback
   -> webhook worker replies via Telegram sendMessage
 ```
 
 For local development you can still use `apps/bot` with polling. For cloud deploys, prefer the Cloudflare webhook worker documented in [cloudflare-webhook.md](./cloudflare-webhook.md).
 
-If the parser needs clarification, the API stores the parse event but creates no transactions.
+If the parser needs clarification, the API stores the parse event, stores a
+short-lived pending clarification row in Postgres, and creates no transactions.
+The next Telegram text from the same user is parsed with the original message as
+context.
+
+Natural edit messages are API-owned. The model can only propose a structured
+intent, and the API only writes a category update when the target transaction is
+one of the user's recent active transactions, the category is valid, and model
+confidence clears the API threshold. Low-confidence or ambiguous edits ask for a
+clarification instead of writing.
+
+Telegram correction commands are constrained API writes. `/category last
+<category>` updates only the latest active Telegram transaction category after
+the API validates the requested category. It remains available as a fallback.
 
 ## Dashboard Data Flow
 

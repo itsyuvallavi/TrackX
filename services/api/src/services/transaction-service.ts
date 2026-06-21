@@ -1,6 +1,7 @@
 // Owner: services/api. Transaction CRUD orchestration for API routes.
 import { z } from "zod";
 import {
+  CategoryNameSchema,
   CreateTransactionSchema,
   TransactionSourceSchema,
   TransactionIdSchema,
@@ -45,6 +46,13 @@ export const UndoLastSchema = z.object({
   source: TransactionSourceSchema.optional(),
 });
 
+export const UpdateLastCategorySchema = z.object({
+  userId: z.string().uuid().optional(),
+  telegramUserId: z.string().min(1).optional(),
+  source: TransactionSourceSchema.default("telegram"),
+  category: CategoryNameSchema,
+});
+
 export type ApiCreateTransactionInput = z.infer<
   typeof ApiCreateTransactionSchema
 >;
@@ -52,13 +60,22 @@ export type ApiUpdateTransactionInput = z.infer<
   typeof ApiUpdateTransactionSchema
 >;
 export type UndoLastInput = z.infer<typeof UndoLastSchema>;
+export type UpdateLastCategoryInput = z.infer<typeof UpdateLastCategorySchema>;
 
 export type TransactionService = {
   create(input: ApiCreateTransactionInput): Promise<TransactionRecord>;
   list(userId?: string): Promise<TransactionRecord[]>;
+  listRecent(userId: string, limit?: number): Promise<TransactionRecord[]>;
   remove(id: string, userId?: string): Promise<TransactionRecord>;
+  resolveMessageUser(input: {
+    userId?: string | undefined;
+    telegramUserId?: string | undefined;
+  }): Promise<string>;
   resolveUser(userId?: string): Promise<string>;
   undoLast(input: UndoLastInput): Promise<TransactionRecord>;
+  updateLastCategory(
+    input: UpdateLastCategoryInput,
+  ): Promise<TransactionRecord>;
   update(
     id: string,
     input: ApiUpdateTransactionInput,
@@ -83,8 +100,24 @@ export function createTransactionService(
     return user.id;
   }
 
+  async function resolveMessageUser(input: {
+    userId?: string | undefined;
+    telegramUserId?: string | undefined;
+  }): Promise<string> {
+    if (input.userId) {
+      return resolveUser(input.userId);
+    }
+
+    if (input.telegramUserId) {
+      return (await users.ensureTelegramUser(input.telegramUserId)).id;
+    }
+
+    return resolveUser();
+  }
+
   return {
     resolveUser,
+    resolveMessageUser,
 
     async create(input) {
       const userId = await resolveUser(input.userId);
@@ -107,6 +140,10 @@ export function createTransactionService(
 
     async list(userId) {
       return transactions.listByUser(await resolveUser(userId));
+    },
+
+    async listRecent(userId, limit = 10) {
+      return transactions.listRecentByUser(userId, limit);
     },
 
     async remove(id, userId) {
@@ -133,6 +170,22 @@ export function createTransactionService(
       }
 
       return removed;
+    },
+
+    async updateLastCategory(input) {
+      const userId = await resolveMessageUser({
+        userId: input.userId,
+        telegramUserId: input.telegramUserId,
+      });
+      const updated = await transactions.updateLast(userId, input.source, {
+        category: input.category,
+      });
+
+      if (!updated) {
+        throw new ApiNotFoundError("Transaction not found.");
+      }
+
+      return updated;
     },
 
     async update(id, input) {

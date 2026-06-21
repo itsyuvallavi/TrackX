@@ -59,6 +59,21 @@ describe("loadApiConfig", () => {
       apiPort: 4101,
       apiBaseUrl: "http://localhost:4101",
       parserBaseUrl: "http://localhost:4102",
+      openAiApiKey: undefined,
+      openAiModel: "gpt-4o-mini",
+    });
+  });
+
+  it("allows API-side OpenAI intent settings", () => {
+    expect(
+      loadApiConfig({
+        ...baseEnv,
+        OPENAI_API_KEY: "key",
+        OPENAI_MODEL: "gpt-4o",
+      }),
+    ).toMatchObject({
+      openAiApiKey: "key",
+      openAiModel: "gpt-4o",
     });
   });
 

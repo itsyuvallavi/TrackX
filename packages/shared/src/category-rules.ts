@@ -94,7 +94,7 @@ const CATEGORY_RULES: readonly CategoryRule[] = [
   {
     category: "Restaurants / Cafes / Fun",
     confidence: 0.72,
-    reason: "generic restaurant or cafe wording",
+    reason: "generic restaurant, cafe, or entertainment wording",
     patterns: [
       /\bcafes?\b/,
       /\bcoffee\b/,
@@ -102,6 +102,10 @@ const CATEGORY_RULES: readonly CategoryRule[] = [
       /\bdinner\b/,
       /\bdrinks\b/,
       /\bfood\b/,
+      /\bmovies?\b/,
+      /\bcinema\b/,
+      /\bconcerts?\b/,
+      /\btheat(?:er|re)\b/,
     ],
   },
 ];
