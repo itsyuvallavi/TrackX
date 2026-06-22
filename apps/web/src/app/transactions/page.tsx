@@ -2,20 +2,21 @@
 import { CommandHeader } from "@/components/command-header";
 import { ResponsiveAppShell } from "@/components/responsive-app-shell";
 import { TransactionsTable } from "@/components/transactions-table";
-import { ApiError, getTransactions } from "@/lib/api";
+import { ApiError } from "@/lib/api";
 import { requireAuthenticatedUser } from "@/lib/auth";
+import { loadTransactions } from "@/lib/server-page-data";
 
 export default async function TransactionsPage() {
-  await requireAuthenticatedUser();
+  const user = await requireAuthenticatedUser();
 
   try {
-    const transactions = await getTransactions();
+    const transactions = await loadTransactions(user.id);
 
     return (
       <ResponsiveAppShell currentPath="/transactions">
         <main
           id="main-content"
-          className="mx-auto max-w-7xl space-y-5 px-4 py-4 lg:space-y-6 lg:py-6"
+          className="mx-auto max-w-7xl space-y-3 px-3 py-3 sm:space-y-5 sm:px-4 sm:py-4 lg:space-y-6 lg:py-6"
         >
           <CommandHeader
             title="Transactions"

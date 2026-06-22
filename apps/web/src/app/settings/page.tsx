@@ -2,14 +2,15 @@
 import { CommandHeader } from "@/components/command-header";
 import { ResponsiveAppShell } from "@/components/responsive-app-shell";
 import { BudgetPlanner } from "@/components/settings/budget-planner";
-import { ApiError, getBudgets } from "@/lib/api";
+import { ApiError } from "@/lib/api";
 import { requireAuthenticatedUser } from "@/lib/auth";
+import { loadBudgets } from "@/lib/server-page-data";
 
 export default async function SettingsPage() {
-  await requireAuthenticatedUser();
+  const user = await requireAuthenticatedUser();
 
   try {
-    const budgets = await getBudgets();
+    const budgets = await loadBudgets(user.id);
 
     return (
       <ResponsiveAppShell currentPath="/settings">

@@ -1,8 +1,10 @@
 // Owner: services/api. In-memory transaction repository helpers for API tests.
 import {
   type CreateTransactionRecordInput,
-  createTransactionService,
+  type TransactionListSort,
   type TransactionRecord,
+  compareTransactionsForList,
+  createTransactionService,
   type TransactionRepository,
   type TransactionService,
   type UpdateTransactionRecordInput,
@@ -38,16 +40,20 @@ export function createInMemoryTransactionService(
       return record;
     },
     async listByUser(userId) {
-      return records.filter(
-        (record) => record.userId === userId && record.deletedAt === null,
-      );
-    },
-    async listRecentByUser(userId, limit) {
       return [...records]
         .filter(
           (record) => record.userId === userId && record.deletedAt === null,
         )
-        .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+        .sort((left, right) =>
+          compareTransactionsForList(left, right, "transactionDate"),
+        );
+    },
+    async listRecentByUser(userId, limit, sort = "logged") {
+      return [...records]
+        .filter(
+          (record) => record.userId === userId && record.deletedAt === null,
+        )
+        .sort((left, right) => compareTransactionsForList(left, right, sort))
         .slice(0, limit);
     },
     async softDelete(id, userId) {

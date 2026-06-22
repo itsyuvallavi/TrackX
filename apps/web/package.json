@@ -9,9 +9,10 @@
     "start": "next start --port 3000",
     "lint": "tsc --noEmit",
     "typecheck": "pnpm --filter @trackx/api-core build && pnpm --filter @trackx/parser-core build && pnpm --filter @trackx/shared build && tsc --noEmit",
-    "test": "echo \"No web tests yet.\""
+    "test": "vitest run"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^6.19.3",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
     "@trackx/api-core": "workspace:*",
@@ -19,6 +20,7 @@
     "@trackx/parser-core": "workspace:*",
     "@trackx/shared": "workspace:*",
     "next": "^15.5.4",
+    "pg": "^8.22.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "zod": "^4.2.0"
@@ -30,6 +32,7 @@
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.0"
   }
 }

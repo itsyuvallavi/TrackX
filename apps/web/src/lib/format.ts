@@ -33,6 +33,16 @@ export function formatPercent(value: number): string {
   return `${Math.round(value)}%`;
 }
 
+export function formatTransactionDescription(description: string): string {
+  const trimmed = description.trim();
+
+  if (!trimmed) {
+    return description;
+  }
+
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
 export function budgetStatusLabel(status: BudgetStatusLevel): string {
   switch (status) {
     case "ok":

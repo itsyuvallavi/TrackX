@@ -43,6 +43,7 @@ export function createMessageIntentService(
       const recent = await transactions.listRecent(
         input.userId,
         RECENT_TRANSACTION_LIMIT,
+        "logged",
       );
 
       if (recent.length === 0) {

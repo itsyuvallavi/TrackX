@@ -22,7 +22,7 @@ export function MobileTabBar({ currentPath, links }: MobileTabBarProps) {
   }, [currentPath]);
 
   return (
-    <nav className="fixed inset-x-5 bottom-4 z-20 mx-auto max-w-sm rounded-[1.65rem] border border-white/70 bg-white/80 p-1.5 shadow-panel backdrop-blur-xl lg:hidden">
+    <nav className="fixed inset-x-4 bottom-3 z-20 mx-auto max-w-sm rounded-2xl border border-white/70 bg-white/80 p-1 shadow-panel backdrop-blur-xl sm:inset-x-5 sm:bottom-4 sm:rounded-[1.65rem] sm:p-1.5 lg:hidden">
       <div
         className="relative grid items-center gap-1"
         style={{
@@ -46,7 +46,7 @@ export function MobileTabBar({ currentPath, links }: MobileTabBarProps) {
               key={link.href}
               href={link.href}
               onClick={() => setActivePath(link.href)}
-              className={`relative z-10 flex min-h-10 items-center justify-center rounded-[1.35rem] px-3 text-[0.95rem] font-semibold transition duration-[420ms] ease-trackx-out active:scale-[0.97] ${
+              className={`relative z-10 flex min-h-9 items-center justify-center rounded-2xl px-2 text-sm font-semibold transition duration-[420ms] ease-trackx-out active:scale-[0.97] sm:min-h-10 sm:rounded-[1.35rem] sm:px-3 sm:text-[0.95rem] ${
                 active ? "text-accent" : "text-ink-muted"
               }`}
             >

@@ -63,7 +63,7 @@ the API validates the requested category. It remains available as a fallback.
 
 ```text
 Browser at apps/web
-  -> server-side fetch to WEB_API_BASE_URL locally or Vercel /api in production
+  -> server-side fetch to WEB_API_BASE_URL locally or same-host /api in production
   -> GET /dashboard/month OR /api/dashboard/month
   -> GET /dashboard/week OR /api/dashboard/week
   -> GET /transactions OR /api/transactions

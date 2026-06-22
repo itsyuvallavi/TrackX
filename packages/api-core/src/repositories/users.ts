@@ -31,6 +31,11 @@ export function createPrismaUserRepository(
 ): UserRepository {
   return {
     async ensureAuthUser(input) {
+      const existing = await prisma.user.findUnique({
+        where: { id: input.authUserId },
+        select: { id: true },
+      });
+
       const user = await prisma.user.upsert({
         where: { id: input.authUserId },
         create: {
@@ -41,13 +46,13 @@ export function createPrismaUserRepository(
         },
         update: {
           email: input.email,
-          defaultCurrency: "EUR",
-          timezone: DEFAULT_LOCAL_TIMEZONE,
         },
         select: { id: true, defaultCurrency: true, timezone: true },
       });
 
-      await ensureDefaultSettings(user.id);
+      if (!existing) {
+        await ensureDefaultSettings(user.id);
+      }
 
       return user;
     },

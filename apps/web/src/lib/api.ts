@@ -1,4 +1,5 @@
 // Owner: apps/web. Server-side API client for the TrackX dashboard.
+import { getApiBaseUrl } from "@/lib/api-base-url";
 import { cookies } from "next/headers";
 import type {
   BudgetStatus,
@@ -45,20 +46,6 @@ export class ApiError extends Error {
   }
 }
 
-function getApiBaseUrl(): string {
-  const configured = process.env.WEB_API_BASE_URL?.trim();
-
-  if (configured) {
-    return trimTrailingSlash(configured);
-  }
-
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}/api`;
-  }
-
-  return "http://localhost:3000/api";
-}
-
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
 
@@ -70,7 +57,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers.set("cookie", (await cookies()).toString());
   }
 
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+  const response = await fetch(`${await getApiBaseUrl()}${path}`, {
     ...init,
     cache: "no-store",
     headers,
@@ -92,10 +79,6 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return (await response.json()) as T;
-}
-
-function trimTrailingSlash(value: string): string {
-  return value.replace(/\/+$/, "");
 }
 
 export async function getMonthDashboard(): Promise<DashboardMonthResponse> {

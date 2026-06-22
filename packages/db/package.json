@@ -23,8 +23,10 @@
     "typecheck": "pnpm --filter @trackx/shared build && pnpm run generate && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^6.16.2",
-    "@trackx/shared": "workspace:*"
+    "@trackx/shared": "workspace:*",
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "prisma": "^6.16.2",

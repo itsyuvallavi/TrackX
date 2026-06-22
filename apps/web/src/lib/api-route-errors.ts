@@ -43,6 +43,15 @@ export function toApiErrorResponse(error: unknown): NextResponse {
     return NextResponse.json({ error: error.message }, { status: 502 });
   }
 
+  if (isPrismaClientError(error)) {
+    console.error("Database error in API route:", error);
+    return NextResponse.json(
+      { error: "Database unavailable." },
+      { status: 503 },
+    );
+  }
+
+  console.error("Unhandled API route error:", error);
   throw error;
 }
 
@@ -52,4 +61,14 @@ export async function readJsonBody(request: Request): Promise<unknown> {
   } catch {
     throw new ApiRouteBadRequestError("Invalid JSON body.");
   }
+}
+
+function isPrismaClientError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("name" in error)) {
+    return false;
+  }
+
+  const name = error.name;
+
+  return typeof name === "string" && name.startsWith("PrismaClient");
 }

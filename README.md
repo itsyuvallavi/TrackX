@@ -451,9 +451,10 @@ pnpm web:dev
 ```
 
 The web app reads from `WEB_API_BASE_URL` when it is set. When it is unset,
-the app uses same-origin `/api` Route Handlers, which is the default for Vercel
-and the recommended local path while testing dashboard auth. In Docker, set it
-to `http://api:4001` when routing through the Fastify API container.
+the app uses same-origin `/api` Route Handlers on the incoming request host,
+which is the default for Vercel and the recommended local path while testing
+dashboard auth. In Docker, set it to `http://api:4001` when routing through the
+Fastify API container.
 
 Local `pnpm web:dev` reads the root `.env` through `apps/web/next.config.ts` so
 Supabase auth middleware can protect `/dashboard`, `/transactions`, and the
@@ -526,7 +527,7 @@ Run `pnpm env:check -- --target=local` before local startup and `pnpm env:check 
 ### Dashboard shows "Dashboard unavailable"
 
 - Confirm `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set for dashboard auth
-- Leave `WEB_API_BASE_URL` unset for same-origin `/api`, or point it to a running API such as `http://localhost:4001`
+- Leave `WEB_API_BASE_URL` unset for same-host `/api`, or point it to a running API such as `http://localhost:4001`
 - Migrate and seed Postgres: `pnpm db:migrate && pnpm db:seed`
 
 ### `POST /transactions/from-message` fails or asks for clarification

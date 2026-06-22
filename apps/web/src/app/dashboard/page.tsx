@@ -1,84 +1,52 @@
 // Owner: apps/web. Dashboard page with month summary, budgets, and recent activity.
-import { BudgetBoard } from "@/components/budget-board";
 import { CommandHeader } from "@/components/command-header";
-import { BudgetWatchlist } from "@/components/dashboard/budget-watchlist";
-import { CategorySpendList } from "@/components/dashboard/category-spend-list";
-import { DashboardGrid } from "@/components/dashboard/dashboard-grid";
-import { MetricStrip } from "@/components/metric-strip";
+import { DashboardBudgetPulse } from "@/components/dashboard/dashboard-budget-pulse";
+import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
 import { RecentTransactionsTable } from "@/components/recent-transactions-table";
 import { ResponsiveAppShell } from "@/components/responsive-app-shell";
-import {
-  ApiError,
-  filterBudgetsByPeriod,
-  getMonthDashboard,
-  getRecentTransactions,
-  getWeekDashboard,
-} from "@/lib/api";
+import { ApiError, filterBudgetsByPeriod } from "@/lib/api";
 import { requireAuthenticatedUser } from "@/lib/auth";
+import { loadDashboardData } from "@/lib/server-page-data";
 import { formatDateTime } from "@/lib/format";
 
 export default async function DashboardPage() {
-  await requireAuthenticatedUser();
+  const user = await requireAuthenticatedUser();
 
   try {
-    const [monthDashboard, weekDashboard, transactions] = await Promise.all([
-      getMonthDashboard(),
-      getWeekDashboard(),
-      getRecentTransactions(8),
-    ]);
+    const { monthDashboard, weekDashboard, transactions } =
+      await loadDashboardData(user.id);
 
     const weeklyBudgets = filterBudgetsByPeriod(weekDashboard.budgets, "week");
     const monthlyBudgets = filterBudgetsByPeriod(
       monthDashboard.budgets,
       "month",
     );
-    const attentionBudgets = [...weeklyBudgets, ...monthlyBudgets].filter(
-      (budget) => budget.spentAmount > 0 || budget.status !== "ok",
-    );
-    const hasCategorySpending = monthlyBudgets.some(
-      (budget) => budget.spentAmount > 0,
-    );
-    const hasBudgets = weeklyBudgets.length > 0 || monthlyBudgets.length > 0;
 
     return (
       <ResponsiveAppShell currentPath="/dashboard">
         <main
           id="main-content"
-          className="mx-auto max-w-7xl space-y-5 px-4 py-4 lg:space-y-6 lg:py-6"
+          className="mx-auto max-w-7xl space-y-3 px-3 py-3 sm:space-y-5 sm:px-4 sm:py-4 lg:space-y-6 lg:py-6"
         >
           <CommandHeader
             title="Dashboard"
             meta={`Month ends ${formatDateTime(monthDashboard.window.end).split(",")[0]}`}
           />
 
-          <MetricStrip
-            income={monthDashboard.income}
-            expenses={monthDashboard.expenses}
+          <DashboardSummary
             weekExpenses={weekDashboard.expenses}
+            monthExpenses={monthDashboard.expenses}
+            income={monthDashboard.income}
             weeklyBudgets={weeklyBudgets}
-            monthlyBudgets={monthlyBudgets}
             currency={monthDashboard.currency}
           />
 
-          {attentionBudgets.length > 0 || hasCategorySpending ? (
-            <DashboardGrid>
-              {attentionBudgets.length > 0 ? (
-                <BudgetWatchlist budgets={attentionBudgets} />
-              ) : null}
-              {hasCategorySpending ? (
-                <CategorySpendList budgets={monthlyBudgets} />
-              ) : null}
-            </DashboardGrid>
-          ) : null}
+          <DashboardBudgetPulse
+            weeklyBudgets={weeklyBudgets}
+            monthlyBudgets={monthlyBudgets}
+          />
 
-          <RecentTransactionsTable transactions={transactions} limit={8} />
-
-          {hasBudgets ? (
-            <BudgetBoard
-              monthlyBudgets={monthlyBudgets}
-              weeklyBudgets={weeklyBudgets}
-            />
-          ) : null}
+          <RecentTransactionsTable transactions={transactions} limit={5} />
         </main>
       </ResponsiveAppShell>
     );

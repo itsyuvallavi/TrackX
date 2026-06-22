@@ -13,8 +13,11 @@ const nextConfig: NextConfig = {
     "/*": [
       "../../node_modules/.pnpm/@prisma+client@*/node_modules/.prisma/client/**/*",
       "../../node_modules/.prisma/client/**/*",
+      "../../node_modules/.pnpm/pg@*/node_modules/pg/**/*",
+      "../../node_modules/.pnpm/@prisma+adapter-pg@*/node_modules/@prisma/adapter-pg/**/*",
     ],
   },
+  serverExternalPackages: ["pg", "@prisma/adapter-pg"],
   transpilePackages: [
     "@trackx/api-core",
     "@trackx/db",

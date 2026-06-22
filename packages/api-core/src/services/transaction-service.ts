@@ -10,6 +10,7 @@ import {
 import type {
   TransactionRecord,
   TransactionRepository,
+  TransactionListSort,
 } from "../repositories/transactions.js";
 import type { UserRepository } from "../repositories/users.js";
 
@@ -66,7 +67,11 @@ export type UpdateLastCategoryInput = z.infer<typeof UpdateLastCategorySchema>;
 export type TransactionService = {
   create(input: ApiCreateTransactionInput): Promise<TransactionRecord>;
   list(userId?: string): Promise<TransactionRecord[]>;
-  listRecent(userId: string, limit?: number): Promise<TransactionRecord[]>;
+  listRecent(
+    userId: string,
+    limit?: number,
+    sort?: TransactionListSort,
+  ): Promise<TransactionRecord[]>;
   remove(id: string, userId?: string): Promise<TransactionRecord>;
   resolveMessageUser(input: {
     userId?: string | undefined;
@@ -143,8 +148,8 @@ export function createTransactionService(
       return transactions.listByUser(await resolveUser(userId));
     },
 
-    async listRecent(userId, limit = 10) {
-      return transactions.listRecentByUser(userId, limit);
+    async listRecent(userId, limit = 10, sort = "logged") {
+      return transactions.listRecentByUser(userId, limit, sort);
     },
 
     async remove(id, userId) {

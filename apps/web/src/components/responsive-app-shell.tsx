@@ -12,7 +12,7 @@ export function ResponsiveAppShell({
   currentPath,
 }: ResponsiveAppShellProps) {
   return (
-    <div className="min-h-screen bg-surface-muted pb-24 lg:pb-0">
+    <div className="min-h-screen bg-surface-muted pb-20 sm:pb-24 lg:pb-0">
       <AppNav currentPath={currentPath} />
       {children}
       <MobileTabBar currentPath={currentPath} links={appLinks} />

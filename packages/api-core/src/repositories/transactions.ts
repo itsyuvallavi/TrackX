@@ -32,6 +32,8 @@ export type TransactionRecord = {
   deletedAt: string | null;
 };
 
+export type TransactionListSort = "logged" | "transactionDate";
+
 export type CreateTransactionRecordInput = {
   userId: string;
   type: TransactionType;
@@ -60,7 +62,11 @@ export type UpdateTransactionRecordInput = Partial<
 export type TransactionRepository = {
   create(input: CreateTransactionRecordInput): Promise<TransactionRecord>;
   listByUser(userId: string): Promise<TransactionRecord[]>;
-  listRecentByUser(userId: string, limit: number): Promise<TransactionRecord[]>;
+  listRecentByUser(
+    userId: string,
+    limit: number,
+    sort?: TransactionListSort,
+  ): Promise<TransactionRecord[]>;
   softDelete(id: string, userId: string): Promise<TransactionRecord | null>;
   undoLast(
     userId: string,
@@ -106,17 +112,20 @@ export function createPrismaTransactionRepository(
     async listByUser(userId) {
       const transactions = await prisma.transaction.findMany({
         where: { userId, deletedAt: null },
-        orderBy: { transactionDate: "desc" },
+        orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }],
         include: { category: true },
       });
 
       return transactions.map(mapTransaction);
     },
 
-    async listRecentByUser(userId, limit) {
+    async listRecentByUser(userId, limit, sort = "logged") {
       const transactions = await prisma.transaction.findMany({
         where: { userId, deletedAt: null },
-        orderBy: { createdAt: "desc" },
+        orderBy:
+          sort === "transactionDate"
+            ? [{ transactionDate: "desc" }, { createdAt: "desc" }]
+            : { createdAt: "desc" },
         take: limit,
         include: { category: true },
       });
@@ -228,6 +237,24 @@ async function findCategoryOrThrow(
   }
 
   return record;
+}
+
+export function compareTransactionsForList(
+  left: Pick<TransactionRecord, "transactionDate" | "createdAt">,
+  right: Pick<TransactionRecord, "transactionDate" | "createdAt">,
+  sort: TransactionListSort,
+): number {
+  if (sort === "logged") {
+    return right.createdAt.localeCompare(left.createdAt);
+  }
+
+  const dateDelta = right.transactionDate.localeCompare(left.transactionDate);
+
+  if (dateDelta !== 0) {
+    return dateDelta;
+  }
+
+  return right.createdAt.localeCompare(left.createdAt);
 }
 
 function dateFromDay(day: string): Date {

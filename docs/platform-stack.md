@@ -111,7 +111,7 @@ The Vercel project settings should point at the monorepo web app:
 - Root Directory: `apps/web`
 - Build command/output directory: Vercel defaults for Next.js
 
-`apps/web/next.config.ts` traces from the monorepo root and includes Prisma's generated client engine. Without that, Vercel can build successfully but DB-backed API routes fail at runtime because the native Prisma query engine is missing from the function bundle.
+`apps/web/next.config.ts` traces from the monorepo root and includes Prisma client files plus `pg` / `@prisma/adapter-pg` for the Supabase pooler driver path. Without that, Vercel can build successfully but DB-backed API routes fail at runtime with 500/503 errors.
 
 ### How it talks to the backend
 
@@ -119,19 +119,19 @@ Current implementation uses server-side fetch through the web app:
 
 - Local default: same-origin `/api` on `http://localhost:3000`
 - Local Docker/Fastify override: set `WEB_API_BASE_URL` to `http://localhost:4001` or `http://api:4001`
-- Vercel default: leave `WEB_API_BASE_URL` unset so dashboard fetches hit the same deployment's Route Handlers
+- Vercel default: leave `WEB_API_BASE_URL` unset; dashboard fetches use the incoming request host so alias/custom domains work with Deployment Protection
 
 The web app uses Supabase directly only for Auth session cookies. Business data
 still flows through the API and Prisma.
 
 ### Keys
 
-| Variable                               | Where                                                                            |
-| -------------------------------------- | -------------------------------------------------------------------------------- |
-| `WEB_API_BASE_URL`                     | Optional local/Docker override; leave unset on Vercel for same deployment `/api` |
-| `NEXT_PUBLIC_SITE_URL`                 | Public app URL used by Supabase email redirects                                  |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase project URL for Auth                                                    |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key for Auth sessions                                  |
+| Variable                               | Where                                                                      |
+| -------------------------------------- | -------------------------------------------------------------------------- |
+| `WEB_API_BASE_URL`                     | Optional local/Docker override; leave unset on Vercel for same-host `/api` |
+| `NEXT_PUBLIC_SITE_URL`                 | Public app URL used by Supabase email redirects                            |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase project URL for Auth                                              |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key for Auth sessions                            |
 
 ---
 

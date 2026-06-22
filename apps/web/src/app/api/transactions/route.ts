@@ -14,7 +14,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (limit) {
       return NextResponse.json(
-        await getTransactionService().listRecent(userId, limit),
+        await getTransactionService().listRecent(
+          userId,
+          limit,
+          "transactionDate",
+        ),
       );
     }
 

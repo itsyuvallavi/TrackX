@@ -1,7 +1,10 @@
-// Owner: apps/web. Mobile-friendly transaction feed row.
+// Owner: apps/web. Compact transaction row for dashboard and mobile lists.
 import type { TransactionRecord } from "@/lib/api";
-import { formatDate, formatMoney } from "@/lib/format";
-import { CategoryChip } from "./ui/chips";
+import {
+  formatDate,
+  formatMoney,
+  formatTransactionDescription,
+} from "@/lib/format";
 
 type TransactionFeedItemProps = {
   actions?: React.ReactNode;
@@ -13,33 +16,32 @@ export function TransactionFeedItem({
   transaction,
 }: TransactionFeedItemProps) {
   const income = transaction.type === "income";
+  const description = formatTransactionDescription(transaction.description);
+  const meta = transaction.merchant
+    ? `${formatDate(transaction.transactionDate)} · ${transaction.merchant}`
+    : `${formatDate(transaction.transactionDate)} · ${transaction.category}`;
 
   return (
-    <article className="panel panel-body space-y-3">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-ink">
-            {transaction.description}
-          </p>
-          <p className="mt-1 text-xs text-ink-muted">
-            {transaction.merchant ?? formatDate(transaction.transactionDate)}
-          </p>
-        </div>
+    <article className="py-1.5 sm:py-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="min-w-0 truncate text-[13px] font-medium leading-5 text-ink sm:text-sm">
+          {description}
+        </p>
         <p
-          className={`shrink-0 text-sm font-semibold tabular-nums ${
+          className={`shrink-0 text-[13px] font-semibold tabular-nums leading-5 sm:text-sm ${
             income ? "text-success" : "text-ink"
           }`}
         >
-          {income ? "+" : "-"}
+          {income ? "+" : "−"}
           {formatMoney(transaction.amount, transaction.currency)}
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <CategoryChip category={transaction.category} />
+      <div className="mt-0.5 flex items-center justify-between gap-2">
+        <p className="min-w-0 truncate text-[11px] leading-4 text-ink-muted sm:text-xs">
+          {meta}
+        </p>
+        {actions}
       </div>
-      {actions ? (
-        <div className="grid grid-cols-2 gap-2 pt-1">{actions}</div>
-      ) : null}
     </article>
   );
 }

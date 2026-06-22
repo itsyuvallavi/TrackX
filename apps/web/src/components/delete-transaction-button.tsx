@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import { deleteTransactionAction } from "@/lib/actions";
 
 type DeleteTransactionButtonProps = {
+  compact?: boolean;
   transactionId: string;
   description: string;
 };
 
 export function DeleteTransactionButton({
+  compact = false,
   transactionId,
   description,
 }: DeleteTransactionButtonProps) {
@@ -41,7 +43,11 @@ export function DeleteTransactionButton({
   return (
     <button
       type="button"
-      className="btn-danger disabled:opacity-60"
+      className={
+        compact
+          ? "text-xs font-medium text-danger hover:underline disabled:opacity-60"
+          : "btn-danger disabled:opacity-60"
+      }
       disabled={pending}
       onClick={handleDelete}
     >

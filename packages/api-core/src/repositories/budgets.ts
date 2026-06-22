@@ -117,8 +117,7 @@ export function createPrismaBudgetRepository(
     },
 
     async getTransactionTotals(input) {
-      const rows = await prisma.transaction.groupBy({
-        by: ["type", "categoryId"],
+      const transactions = await prisma.transaction.findMany({
         where: {
           userId: input.userId,
           deletedAt: null,
@@ -128,21 +127,12 @@ export function createPrismaBudgetRepository(
             lt: input.end,
           },
         },
-        _sum: { amount: true },
+        select: {
+          type: true,
+          amount: true,
+          category: { select: { name: true } },
+        },
       });
-      const categoryIds = rows
-        .filter((row) => row.type === "expense")
-        .map((row) => row.categoryId);
-      const categories =
-        categoryIds.length > 0
-          ? await prisma.category.findMany({
-              where: { id: { in: categoryIds } },
-              select: { id: true, name: true },
-            })
-          : [];
-      const categoryById = new Map(
-        categories.map((category) => [category.id, category.name]),
-      );
 
       const totals: TransactionTotals = {
         expenses: 0,
@@ -150,21 +140,19 @@ export function createPrismaBudgetRepository(
         byCategory: new Map(),
       };
 
-      for (const row of rows) {
-        const amount = row._sum.amount?.toNumber() ?? 0;
+      for (const transaction of transactions) {
+        const amount = transaction.amount.toNumber();
 
-        if (row.type === "income") {
+        if (transaction.type === "income") {
           totals.income += amount;
           continue;
         }
 
-        if (row.type !== "expense") {
+        if (transaction.type !== "expense") {
           continue;
         }
 
-        const category = CategoryNameSchema.parse(
-          categoryById.get(row.categoryId),
-        );
+        const category = CategoryNameSchema.parse(transaction.category.name);
         totals.expenses += amount;
         totals.byCategory.set(
           category,

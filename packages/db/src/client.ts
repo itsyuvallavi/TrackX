@@ -1,8 +1,17 @@
 // Owner: packages/db. Shared Prisma client factory for TrackX services.
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
 export function createPrismaClient(): PrismaClient {
-  return new PrismaClient();
+  const connectionString = process.env.DATABASE_URL;
+
+  if (!connectionString) {
+    return new PrismaClient();
+  }
+
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString }),
+  });
 }
 
 export { PrismaClient };
