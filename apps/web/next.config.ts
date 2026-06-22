@@ -1,11 +1,15 @@
 // Owner: apps/web. Next.js configuration for the TrackX dashboard.
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
+const rootEnvPath = path.join(dirname, "../..", ".env");
 
-process.loadEnvFile?.(path.join(dirname, "../..", ".env"));
+if (fs.existsSync(rootEnvPath)) {
+  process.loadEnvFile?.(rootEnvPath);
+}
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(dirname, "../.."),
