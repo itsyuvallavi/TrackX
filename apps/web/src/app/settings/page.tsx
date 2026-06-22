@@ -2,44 +2,69 @@
 import { CommandHeader } from "@/components/command-header";
 import { ResponsiveAppShell } from "@/components/responsive-app-shell";
 import { BudgetPlanner } from "@/components/settings/budget-planner";
-import { getBudgets } from "@/lib/api";
+import { ApiError, getBudgets } from "@/lib/api";
 import { requireAuthenticatedUser } from "@/lib/auth";
 
 export default async function SettingsPage() {
   await requireAuthenticatedUser();
-  const budgets = await getBudgets();
 
-  return (
-    <ResponsiveAppShell currentPath="/settings">
-      <main
-        id="main-content"
-        className="mx-auto max-w-3xl space-y-5 px-4 py-4 lg:space-y-6 lg:py-6"
-      >
-        <CommandHeader title="Settings" />
+  try {
+    const budgets = await getBudgets();
 
-        <BudgetPlanner initialBudgets={budgets} />
+    return (
+      <ResponsiveAppShell currentPath="/settings">
+        <main
+          id="main-content"
+          className="mx-auto max-w-3xl space-y-5 px-4 py-4 lg:space-y-6 lg:py-6"
+        >
+          <CommandHeader title="Settings" />
 
-        <section className="panel overflow-hidden">
-          <div className="panel-header">
-            <h2 className="text-sm font-semibold text-ink">Telegram</h2>
-          </div>
-          <div className="panel-body space-y-3">
-            <p className="text-sm leading-6 text-ink-muted">
-              Telegram is the main input for TrackX. Send expenses or income to
-              your connected bot, then review them in Dashboard and
-              Transactions.
+          <BudgetPlanner initialBudgets={budgets} />
+
+          <TelegramSettings />
+        </main>
+      </ResponsiveAppShell>
+    );
+  } catch (error) {
+    return (
+      <ResponsiveAppShell currentPath="/settings">
+        <main id="main-content" className="mx-auto max-w-3xl px-4 py-10">
+          <section className="panel panel-body">
+            <h2 className="text-lg font-semibold text-ink">
+              Settings unavailable
+            </h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              {error instanceof ApiError
+                ? error.message
+                : "Could not load settings from the API."}
             </p>
-            <div className="rounded-3xl bg-accent-muted p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-accent-dark">
-                Example
-              </p>
-              <p className="mt-2 text-sm font-semibold text-ink">
-                spent 4.50 euro on coffee
-              </p>
-            </div>
-          </div>
-        </section>
-      </main>
-    </ResponsiveAppShell>
+          </section>
+        </main>
+      </ResponsiveAppShell>
+    );
+  }
+}
+
+function TelegramSettings() {
+  return (
+    <section className="panel overflow-hidden">
+      <div className="panel-header">
+        <h2 className="text-sm font-semibold text-ink">Telegram</h2>
+      </div>
+      <div className="panel-body space-y-3">
+        <p className="text-sm leading-6 text-ink-muted">
+          Telegram is the main input for TrackX. Send expenses or income to your
+          connected bot, then review them in Dashboard and Transactions.
+        </p>
+        <div className="rounded-3xl bg-accent-muted p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-accent-dark">
+            Example
+          </p>
+          <p className="mt-2 text-sm font-semibold text-ink">
+            spent 4.50 euro on coffee
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
