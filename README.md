@@ -379,7 +379,7 @@ Budget notes:
 - Income is excluded from expense budgets and included in month cashflow.
 - Categories at 75% or more of their budget return `warning`; categories over 100% return `over`.
 - Successful message logging appends budget warning lines for affected expense categories.
-- Non-EUR transactions are converted into EUR through Frankfurter exchange rates and cached in Postgres for budget totals.
+- Non-EUR transactions are converted into EUR through Frankfurter's ECB provider and cached in Postgres for budget totals.
 
 ### `@trackx/bot`
 

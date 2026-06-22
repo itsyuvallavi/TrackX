@@ -29,12 +29,16 @@ describe("exchange-rate service", () => {
     });
 
     expect(fetchRate).toHaveBeenCalledTimes(1);
+    expect(fetchRate).toHaveBeenCalledWith(
+      "https://api.frankfurter.dev/v2/rate/USD/EUR?date=2026-06-22&providers=ECB",
+      { headers: { accept: "application/json" } },
+    );
     expect(records).toMatchObject([
       {
         baseCurrency: "USD",
         quoteCurrency: "EUR",
         rate: 0.86,
-        source: "frankfurter",
+        source: "frankfurter-ecb",
         date: "2026-06-22",
       },
     ]);

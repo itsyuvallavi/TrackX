@@ -1,7 +1,7 @@
 // Owner: packages/api-core. Exchange-rate lookup and conversion helpers.
 import type { Currency } from "@trackx/shared";
 
-const SOURCE = "frankfurter";
+const SOURCE = "frankfurter-ecb";
 const API_BASE_URL = "https://api.frankfurter.dev";
 
 export type ExchangeRateRecord = {
@@ -70,6 +70,7 @@ export function createExchangeRateService(
       fetchRate,
       baseCurrency,
       quoteCurrency,
+      date,
     );
 
     await repository.upsert({
@@ -103,9 +104,14 @@ async function fetchFrankfurterRate(
   fetchRate: typeof fetch,
   baseCurrency: Currency,
   quoteCurrency: Currency,
+  date: string,
 ): Promise<number> {
+  const params = new URLSearchParams({
+    date,
+    providers: "ECB",
+  });
   const response = await fetchRate(
-    `${API_BASE_URL}/v2/rate/${baseCurrency}/${quoteCurrency}`,
+    `${API_BASE_URL}/v2/rate/${baseCurrency}/${quoteCurrency}?${params}`,
     { headers: { accept: "application/json" } },
   );
 
