@@ -5,6 +5,8 @@ import type { NextConfig } from "next";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
+process.loadEnvFile?.(path.join(dirname, "../..", ".env"));
+
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(dirname, "../.."),
   outputFileTracingIncludes: {

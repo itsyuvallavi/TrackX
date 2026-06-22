@@ -7,9 +7,17 @@ import { getTransactionService } from "@/lib/api-route-runtime";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: NextRequest): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const userId = await requireApiUserId();
+    const limit = parseLimit(request.nextUrl.searchParams.get("limit"));
+
+    if (limit) {
+      return NextResponse.json(
+        await getTransactionService().listRecent(userId, limit),
+      );
+    }
+
     return NextResponse.json(await getTransactionService().list(userId));
   } catch (error) {
     return toApiErrorResponse(error);
@@ -28,4 +36,18 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     return toApiErrorResponse(error);
   }
+}
+
+function parseLimit(value: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const limit = Number(value);
+
+  if (!Number.isInteger(limit) || limit < 1) {
+    return null;
+  }
+
+  return Math.min(limit, 50);
 }

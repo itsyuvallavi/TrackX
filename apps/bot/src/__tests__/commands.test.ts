@@ -68,7 +68,7 @@ describe("handleTextMessage", () => {
 
     await handleTextMessage(ctx, options());
 
-    expect(ctx.replies[0]).toContain("Transport: 9/18 EUR (ok)");
+    expect(ctx.replies).toEqual(["Transport 9/18 EUR"]);
   });
 
   it("undoes the latest telegram transaction", async () => {
@@ -141,6 +141,12 @@ function fakeApi(overrides: Partial<TrackxApiClient> = {}): TrackxApiClient {
     },
     async getBudgetStatus() {
       return {
+        period: "week",
+        currency: "EUR",
+        window: {
+          start: "2026-06-15T00:00:00.000Z",
+          end: "2026-06-22T00:00:00.000Z",
+        },
         budgets: [
           {
             category: "Transport",

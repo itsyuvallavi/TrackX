@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import type { ApiConfig } from "@trackx/config";
 import { createPrismaClient, type PrismaClient } from "@trackx/db";
 import {
+  createBudgetAlertService,
   createBudgetService,
   createFromMessageService,
   createHttpParserClient,
@@ -46,6 +47,7 @@ export async function buildApiServer(
     createDefaultFromMessageService(
       options.config,
       transactionService,
+      budgetService,
       options.prisma,
     );
 
@@ -81,6 +83,7 @@ function createDefaultBudgetService(
 function createDefaultFromMessageService(
   config: ApiConfig,
   transactionService: TransactionService,
+  budgetService: BudgetService,
   prisma: PrismaClient = createPrismaClient(),
 ): FromMessageService {
   return createFromMessageService(
@@ -89,6 +92,7 @@ function createDefaultFromMessageService(
     createPrismaPendingClarificationRepository(prisma),
     transactionService,
     createDefaultMessageIntentService(config, transactionService),
+    createBudgetAlertService(budgetService),
   );
 }
 

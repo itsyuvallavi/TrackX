@@ -18,6 +18,7 @@ import type {
 } from "../repositories/transactions.js";
 import type { MessageIntentService } from "./message-intent-service.js";
 import type { TransactionService } from "./transaction-service.js";
+import type { BudgetAlertService } from "./budget-alert-service.js";
 
 const CLARIFICATION_TTL_MS = 30 * 60 * 1000;
 
@@ -49,6 +50,7 @@ export function createFromMessageService(
   pendingClarifications: PendingClarificationRepository,
   transactions: TransactionService,
   messageIntents?: MessageIntentService,
+  budgetAlerts?: BudgetAlertService,
 ): FromMessageService {
   return {
     async createFromMessage(input) {
@@ -130,7 +132,7 @@ export function createFromMessageService(
           transactions: created,
           needsClarification: false,
           clarifyingQuestion: null,
-          feedback: successFeedback(created),
+          feedback: await successFeedback(created, userId, budgetAlerts),
           parser: parsed.parser,
         };
       } catch (error) {
@@ -226,7 +228,11 @@ function clarificationFeedback(parsed: ParserResponse): string {
   return `I need one detail: ${parsed.clarifyingQuestion ?? "Can you clarify?"}`;
 }
 
-function successFeedback(transactions: TransactionRecord[]): string {
+async function successFeedback(
+  transactions: TransactionRecord[],
+  userId: string,
+  budgetAlerts: BudgetAlertService | undefined,
+): Promise<string> {
   if (transactions.length === 0) {
     return "No transactions were created.";
   }
@@ -237,7 +243,10 @@ function successFeedback(transactions: TransactionRecord[]): string {
       return "No transactions were created.";
     }
 
-    return `Logged ${transaction.amount} ${transaction.currency} for ${transaction.category}.`;
+    return appendBudgetWarnings(
+      `Logged ${transaction.amount} ${transaction.currency} for ${transaction.category}.`,
+      await budgetWarnings(budgetAlerts, userId, transactions),
+    );
   }
 
   const total = transactions.reduce((sum, transaction) => {
@@ -249,5 +258,28 @@ function successFeedback(transactions: TransactionRecord[]): string {
   }, 0);
   const currency = transactions[0]?.currency ?? "EUR";
 
-  return `Logged ${transactions.length} transactions totaling ${total} ${currency}.`;
+  return appendBudgetWarnings(
+    `Logged ${transactions.length} transactions totaling ${total} ${currency}.`,
+    await budgetWarnings(budgetAlerts, userId, transactions),
+  );
+}
+
+async function budgetWarnings(
+  budgetAlerts: BudgetAlertService | undefined,
+  userId: string,
+  transactions: TransactionRecord[],
+): Promise<string[]> {
+  if (!budgetAlerts) {
+    return [];
+  }
+
+  return budgetAlerts.warningsForTransactions({ userId, transactions });
+}
+
+function appendBudgetWarnings(feedback: string, warnings: string[]): string {
+  if (warnings.length === 0) {
+    return feedback;
+  }
+
+  return [feedback, ...warnings].join("\n");
 }

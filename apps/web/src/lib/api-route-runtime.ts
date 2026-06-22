@@ -1,5 +1,6 @@
 // Owner: apps/web. Lazy server-only service wiring for Next.js API routes.
 import {
+  createBudgetAlertService,
   createBudgetService,
   createFromMessageService,
   createMessageIntentService,
@@ -54,22 +55,24 @@ function getServices(): ApiRouteServices {
 
   const client = getPrisma();
   const users = createPrismaUserRepository(client);
+  const budgetService = createBudgetService(
+    users,
+    createPrismaBudgetRepository(client),
+  );
   const transactionService = createTransactionService(
     users,
     createPrismaTransactionRepository(client),
   );
 
   services = {
-    budgetService: createBudgetService(
-      users,
-      createPrismaBudgetRepository(client),
-    ),
+    budgetService,
     fromMessageService: createFromMessageService(
       getParserClient(),
       createPrismaParseEventRepository(client),
       createPrismaPendingClarificationRepository(client),
       transactionService,
       createMessageIntentService(getIntentClient(), transactionService),
+      createBudgetAlertService(budgetService),
     ),
     transactionService,
     userRepository: users,

@@ -40,6 +40,30 @@ describe("from-message route", () => {
     expect(harness.parseEvents[0]?.status).toBe("success");
   });
 
+  it("adds budget warnings to successful transaction feedback", async () => {
+    const harness = await createHarness(foodResponse(), {
+      budgetWarnings: ["Heads up: Food & fun 39/50 EUR used."],
+    });
+
+    const response = await harness.server.inject({
+      method: "POST",
+      url: "/transactions/from-message",
+      payload: {
+        message: "spent 15 eur on food",
+        timezone: "Europe/Lisbon",
+        defaultCurrency: "EUR",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().feedback).toBe(
+      [
+        "Logged 15 EUR for Restaurants / Cafes / Fun.",
+        "Heads up: Food & fun 39/50 EUR used.",
+      ].join("\n"),
+    );
+  });
+
   it("creates split transactions from one message", async () => {
     const harness = await createHarness(splitResponse());
     const response = await harness.server.inject({

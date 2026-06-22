@@ -72,6 +72,12 @@ From the repo root:
 pnpm --filter @trackx/webhook deploy
 ```
 
+The worker is configured with `workers_dev = true`, so deploys should publish a public URL like:
+
+```text
+https://trackx-webhook.<your-workers-subdomain>.workers.dev
+```
+
 Set secrets in Cloudflare:
 
 ```bash

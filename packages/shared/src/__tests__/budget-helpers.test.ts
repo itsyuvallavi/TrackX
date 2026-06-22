@@ -24,17 +24,17 @@ describe("calculateBudgetStatus", () => {
     });
   });
 
-  it("returns warning status at 80 percent budget usage", () => {
+  it("returns warning status at 75 percent budget usage", () => {
     const status = calculateBudgetStatus({
       category: "Restaurants / Cafes / Fun",
       period: "week",
       currency: "EUR",
       limitAmount: 50,
-      spentAmount: 42,
+      spentAmount: 37.5,
     });
 
-    expect(status.percentageUsed).toBe(84);
-    expect(status.remainingAmount).toBe(8);
+    expect(status.percentageUsed).toBe(75);
+    expect(status.remainingAmount).toBe(12.5);
     expect(status.status).toBe("warning");
   });
 

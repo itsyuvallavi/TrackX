@@ -10,11 +10,14 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const input = UndoLastSchema.parse(await readJsonBody(request));
-    if (input.telegramUserId) {
-      await requireTelegramApiUserId(request, input.telegramUserId);
-    }
+    const userId = await requireTelegramApiUserId(
+      request,
+      input.telegramUserId,
+    );
 
-    return NextResponse.json(await getTransactionService().undoLast(input));
+    return NextResponse.json(
+      await getTransactionService().undoLast({ ...input, userId }),
+    );
   } catch (error) {
     return toApiErrorResponse(error);
   }

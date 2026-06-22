@@ -67,13 +67,17 @@ export function EditTransactionForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 rounded-lg border border-surface-border bg-surface-muted p-4"
-    >
+    <form onSubmit={handleSubmit} className="panel panel-body space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-ink">Edit transaction</h3>
-        <p className="text-xs text-ink-muted capitalize">{transaction.type}</p>
+        <div>
+          <h3 className="text-sm font-semibold text-ink">Edit transaction</h3>
+          <p className="text-xs text-ink-muted">
+            Update the stored ledger entry.
+          </p>
+        </div>
+        <p className="rounded-md bg-surface-muted px-2 py-1 text-xs font-medium capitalize text-ink-muted">
+          {transaction.type}
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -155,7 +159,7 @@ export function EditTransactionForm({
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <button type="submit" className="btn-primary" disabled={pending}>
           {pending ? "Saving..." : "Save changes"}
         </button>

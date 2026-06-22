@@ -1,20 +1,9 @@
 // Owner: apps/webhook. HTTP client for the TrackX API from Cloudflare Workers.
+import { BudgetStatusResponseSchema } from "@trackx/shared";
 import { z } from "zod";
 
 const FromMessageResponseSchema = z.object({
   feedback: z.string(),
-});
-
-const BudgetStatusResponseSchema = z.object({
-  budgets: z.array(
-    z.object({
-      category: z.string(),
-      spentAmount: z.number(),
-      limitAmount: z.number(),
-      currency: z.string(),
-      status: z.string(),
-    }),
-  ),
 });
 
 const MonthDashboardResponseSchema = z.object({
@@ -34,15 +23,7 @@ export type TrackxApiClient = {
   getBudgetStatus(input: {
     period: "week" | "month";
     telegramUserId?: string | undefined;
-  }): Promise<{
-    budgets: Array<{
-      category: string;
-      spentAmount: number;
-      limitAmount: number;
-      currency: string;
-      status: string;
-    }>;
-  }>;
+  }): Promise<z.infer<typeof BudgetStatusResponseSchema>>;
   getMonthDashboard(input: { telegramUserId?: string | undefined }): Promise<{
     income: number;
     expenses: number;

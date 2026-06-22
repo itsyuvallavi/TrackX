@@ -1,26 +1,30 @@
 // Owner: apps/web. Dashboard page with month summary, budgets, and recent activity.
-import { AppNav } from "@/components/app-nav";
-import { BudgetList } from "@/components/budget-list";
-import { DashboardSummary } from "@/components/dashboard-summary";
+import { BudgetBoard } from "@/components/budget-board";
+import { CommandHeader } from "@/components/command-header";
+import { BudgetWatchlist } from "@/components/dashboard/budget-watchlist";
+import { CategorySpendList } from "@/components/dashboard/category-spend-list";
+import { DashboardGrid } from "@/components/dashboard/dashboard-grid";
+import { MetricStrip } from "@/components/metric-strip";
 import { RecentTransactionsTable } from "@/components/recent-transactions-table";
+import { ResponsiveAppShell } from "@/components/responsive-app-shell";
 import {
   ApiError,
   filterBudgetsByPeriod,
   getMonthDashboard,
-  getTransactions,
+  getRecentTransactions,
   getWeekDashboard,
 } from "@/lib/api";
 import { requireAuthenticatedUser } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 
 export default async function DashboardPage() {
-  try {
-    await requireAuthenticatedUser();
+  await requireAuthenticatedUser();
 
+  try {
     const [monthDashboard, weekDashboard, transactions] = await Promise.all([
       getMonthDashboard(),
       getWeekDashboard(),
-      getTransactions(),
+      getRecentTransactions(8),
     ]);
 
     const weeklyBudgets = filterBudgetsByPeriod(weekDashboard.budgets, "week");
@@ -28,45 +32,60 @@ export default async function DashboardPage() {
       monthDashboard.budgets,
       "month",
     );
+    const attentionBudgets = [...weeklyBudgets, ...monthlyBudgets].filter(
+      (budget) => budget.spentAmount > 0 || budget.status !== "ok",
+    );
+    const hasCategorySpending = monthlyBudgets.some(
+      (budget) => budget.spentAmount > 0,
+    );
+    const hasBudgets = weeklyBudgets.length > 0 || monthlyBudgets.length > 0;
 
     return (
-      <div className="min-h-screen">
-        <AppNav currentPath="/dashboard" />
-        <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
-          <section className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold text-ink">Dashboard</h2>
-              <p className="text-sm text-ink-muted">
-                Current month and week budget status with recent activity.
-              </p>
-            </div>
-            <p className="text-xs text-ink-muted">
-              Month window ends{" "}
-              {formatDateTime(monthDashboard.window.end).split(",")[0]}
-            </p>
-          </section>
+      <ResponsiveAppShell currentPath="/dashboard">
+        <main
+          id="main-content"
+          className="mx-auto max-w-7xl space-y-5 px-4 py-4 lg:space-y-6 lg:py-6"
+        >
+          <CommandHeader
+            title="Dashboard"
+            meta={`Month ends ${formatDateTime(monthDashboard.window.end).split(",")[0]}`}
+          />
 
-          <DashboardSummary
+          <MetricStrip
             income={monthDashboard.income}
             expenses={monthDashboard.expenses}
-            net={monthDashboard.net}
+            weekExpenses={weekDashboard.expenses}
+            weeklyBudgets={weeklyBudgets}
+            monthlyBudgets={monthlyBudgets}
             currency={monthDashboard.currency}
           />
 
-          <section className="grid gap-4 xl:grid-cols-2">
-            <BudgetList title="Weekly budgets" budgets={weeklyBudgets} />
-            <BudgetList title="Monthly budgets" budgets={monthlyBudgets} />
-          </section>
+          {attentionBudgets.length > 0 || hasCategorySpending ? (
+            <DashboardGrid>
+              {attentionBudgets.length > 0 ? (
+                <BudgetWatchlist budgets={attentionBudgets} />
+              ) : null}
+              {hasCategorySpending ? (
+                <CategorySpendList budgets={monthlyBudgets} />
+              ) : null}
+            </DashboardGrid>
+          ) : null}
 
-          <RecentTransactionsTable transactions={transactions} />
+          <RecentTransactionsTable transactions={transactions} limit={8} />
+
+          {hasBudgets ? (
+            <BudgetBoard
+              monthlyBudgets={monthlyBudgets}
+              weeklyBudgets={weeklyBudgets}
+            />
+          ) : null}
         </main>
-      </div>
+      </ResponsiveAppShell>
     );
   } catch (error) {
     return (
-      <div className="min-h-screen">
-        <AppNav currentPath="/dashboard" />
-        <main className="mx-auto max-w-3xl px-4 py-10">
+      <ResponsiveAppShell currentPath="/dashboard">
+        <main id="main-content" className="mx-auto max-w-3xl px-4 py-10">
           <section className="panel panel-body">
             <h2 className="text-lg font-semibold text-ink">
               Dashboard unavailable
@@ -82,7 +101,7 @@ export default async function DashboardPage() {
             </p>
           </section>
         </main>
-      </div>
+      </ResponsiveAppShell>
     );
   }
 }

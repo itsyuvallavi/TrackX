@@ -43,7 +43,7 @@ export function getBudgetStatusLevel(
     return "over";
   }
 
-  if (percentageUsed >= 80) {
+  if (percentageUsed >= 75) {
     return "warning";
   }
 

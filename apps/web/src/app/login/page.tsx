@@ -14,10 +14,20 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-10">
-      <section className="panel w-full max-w-md">
-        <div className="panel-header">TrackX sign in</div>
-        <form action={authenticate} className="panel-body space-y-4">
+    <main className="flex min-h-screen items-center justify-center bg-surface-muted px-4 py-10">
+      <section className="w-full max-w-md space-y-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-accent-dark">
+            TrackX
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold text-ink">
+            Sign in to the console
+          </h1>
+          <p className="mt-2 text-sm text-ink-muted">
+            Review Telegram expenses, budgets, and cleanup actions.
+          </p>
+        </div>
+        <form action={authenticate} className="panel panel-body space-y-4">
           <input
             type="hidden"
             name="next"
@@ -25,17 +35,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           />
           <label className="block space-y-1 text-sm">
             <span className="font-medium text-ink">Email</span>
-            <input
-              className="w-full rounded-md border border-surface-border px-3 py-2"
-              name="email"
-              required
-              type="email"
-            />
+            <input className="field-input" name="email" required type="email" />
           </label>
           <label className="block space-y-1 text-sm">
             <span className="font-medium text-ink">Password</span>
             <input
-              className="w-full rounded-md border border-surface-border px-3 py-2"
+              className="field-input"
               minLength={8}
               name="password"
               required
@@ -48,9 +53,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           {params.message ? (
             <p className="text-sm text-success">{params.message}</p>
           ) : null}
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
-              className="rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white"
+              className="btn-primary"
               name="intent"
               type="submit"
               value="sign-in"
@@ -58,7 +63,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Sign in
             </button>
             <button
-              className="rounded-md border border-surface-border px-3 py-2 text-sm font-semibold text-ink"
+              className="btn-secondary"
               name="intent"
               type="submit"
               value="sign-up"

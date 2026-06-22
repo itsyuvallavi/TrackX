@@ -1,35 +1,35 @@
 // Owner: apps/web. Transactions page with edit and delete actions.
-import { AppNav } from "@/components/app-nav";
+import { CommandHeader } from "@/components/command-header";
+import { ResponsiveAppShell } from "@/components/responsive-app-shell";
 import { TransactionsTable } from "@/components/transactions-table";
 import { ApiError, getTransactions } from "@/lib/api";
 import { requireAuthenticatedUser } from "@/lib/auth";
 
 export default async function TransactionsPage() {
-  try {
-    await requireAuthenticatedUser();
+  await requireAuthenticatedUser();
 
+  try {
     const transactions = await getTransactions();
 
     return (
-      <div className="min-h-screen">
-        <AppNav currentPath="/transactions" />
-        <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
-          <section>
-            <h2 className="text-xl font-semibold text-ink">Transactions</h2>
-            <p className="text-sm text-ink-muted">
-              Review, edit categories, and delete incorrect entries.
-            </p>
-          </section>
+      <ResponsiveAppShell currentPath="/transactions">
+        <main
+          id="main-content"
+          className="mx-auto max-w-7xl space-y-5 px-4 py-4 lg:space-y-6 lg:py-6"
+        >
+          <CommandHeader
+            title="Transactions"
+            meta={`${transactions.length} records`}
+          />
 
           <TransactionsTable transactions={transactions} />
         </main>
-      </div>
+      </ResponsiveAppShell>
     );
   } catch (error) {
     return (
-      <div className="min-h-screen">
-        <AppNav currentPath="/transactions" />
-        <main className="mx-auto max-w-3xl px-4 py-10">
+      <ResponsiveAppShell currentPath="/transactions">
+        <main id="main-content" className="mx-auto max-w-3xl px-4 py-10">
           <section className="panel panel-body">
             <h2 className="text-lg font-semibold text-ink">
               Transactions unavailable
@@ -41,7 +41,7 @@ export default async function TransactionsPage() {
             </p>
           </section>
         </main>
-      </div>
+      </ResponsiveAppShell>
     );
   }
 }

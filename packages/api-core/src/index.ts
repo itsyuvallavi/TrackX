@@ -6,6 +6,7 @@ export * from "./repositories/parse-events.js";
 export * from "./repositories/pending-clarifications.js";
 export * from "./repositories/transactions.js";
 export * from "./repositories/users.js";
+export * from "./services/budget-alert-service.js";
 export * from "./services/budget-service.js";
 export * from "./services/from-message-service.js";
 export * from "./services/message-intent-service.js";

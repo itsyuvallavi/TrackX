@@ -1,5 +1,5 @@
 // Owner: apps/bot. Telegram command and text handlers for TrackX.
-import { resolveCategoryName } from "@trackx/shared";
+import { formatTelegramBudgets, resolveCategoryName } from "@trackx/shared";
 import type { TrackxApiClient } from "./api-client.js";
 import { deniedMessage, isTelegramUserAllowed } from "./allowlist.js";
 
@@ -152,12 +152,5 @@ async function replyWithBudgets(
   ctx: BotContext,
   response: Awaited<ReturnType<TrackxApiClient["getBudgetStatus"]>>,
 ): Promise<void> {
-  const lines = response.budgets
-    .slice(0, 8)
-    .map(
-      (budget) =>
-        `${budget.category}: ${budget.spentAmount}/${budget.limitAmount} ${budget.currency} (${budget.status})`,
-    );
-
-  await ctx.reply(lines.length > 0 ? lines.join("\n") : "No budgets found.");
+  await ctx.reply(formatTelegramBudgets(response.budgets));
 }

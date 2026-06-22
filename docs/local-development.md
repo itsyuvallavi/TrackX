@@ -88,6 +88,10 @@ recommended local path while testing Supabase dashboard auth. Set it to
 `http://localhost:4001` when you intentionally want the dashboard to talk to the
 local Fastify API.
 
+`pnpm web:dev` loads the root `.env` through the Next.js config so Supabase auth
+middleware can read `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` during local dashboard testing.
+
 The worker reads `REDIS_URL` from `.env` and keeps BullMQ schedules disabled unless `WORKER_ENABLE_SCHEDULES=true`. This worker is for local queue learning only; production should use Vercel Cron routes if scheduled summaries are added.
 
 Open [http://localhost:3000](http://localhost:3000) after the API is running and the database is migrated/seeded.

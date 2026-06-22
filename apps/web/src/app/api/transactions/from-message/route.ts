@@ -10,11 +10,15 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const input = FromMessageSchema.parse(await readJsonBody(request));
-    if (input.telegramUserId) {
-      await requireTelegramApiUserId(request, input.telegramUserId);
-    }
+    const userId = await requireTelegramApiUserId(
+      request,
+      input.telegramUserId,
+    );
 
-    const response = await getFromMessageService().createFromMessage(input);
+    const response = await getFromMessageService().createFromMessage({
+      ...input,
+      userId,
+    });
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
     return toApiErrorResponse(error);

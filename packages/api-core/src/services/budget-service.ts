@@ -1,10 +1,12 @@
 // Owner: packages/api-core. Budget status and dashboard summary orchestration.
 import { z } from "zod";
 import {
+  BudgetLimitUpsertSchema,
   BudgetPeriodSchema,
   calculateBudgetStatus,
   getPeriodWindow,
   roundMoney,
+  type BudgetLimitUpsert,
   type BudgetPeriod,
   type BudgetStatusResponse,
   type BudgetWindow,
@@ -30,9 +32,13 @@ export const BudgetListQuerySchema = z.object({
 
 export type BudgetStatusQuery = z.infer<typeof BudgetStatusQuerySchema>;
 export type BudgetListQuery = z.infer<typeof BudgetListQuerySchema>;
+export type BudgetUpsertInput = BudgetLimitUpsert & {
+  userId?: string;
+};
 
 export type BudgetService = {
   list(input: BudgetListQuery): Promise<BudgetRecord[]>;
+  upsert(input: BudgetUpsertInput): Promise<BudgetRecord[]>;
   getStatus(input: BudgetStatusQuery): Promise<BudgetStatusResponse>;
   getWeekDashboard(userId?: string): Promise<DashboardWeekResponse>;
   getMonthDashboard(userId?: string): Promise<DashboardMonthResponse>;
@@ -91,6 +97,13 @@ export function createBudgetService(
     period: BudgetPeriod,
   ): Promise<BudgetStatusResponse> {
     const context = await loadPeriodContext(userId, period);
+    return statusFromContext(context, period);
+  }
+
+  async function statusFromContext(
+    context: PeriodContext,
+    period: BudgetPeriod,
+  ): Promise<BudgetStatusResponse> {
     const activeBudgets = await budgets.listActive(context.user.id, period);
 
     return {
@@ -117,13 +130,19 @@ export function createBudgetService(
       return budgets.listActive(user.id, input.period);
     },
 
+    async upsert(input) {
+      const parsed = BudgetLimitUpsertSchema.parse(input);
+      const user = await resolveUser(input.userId);
+      return budgets.upsertMany(user.id, parsed.budgets);
+    },
+
     async getStatus(input) {
       return statusForPeriod(input.userId, input.period);
     },
 
     async getWeekDashboard(userId) {
       const context = await loadPeriodContext(userId, "week");
-      const status = await statusForPeriod(context.user.id, "week");
+      const status = await statusFromContext(context, "week");
 
       return {
         expenses: roundMoney(context.totals.expenses),
@@ -135,7 +154,7 @@ export function createBudgetService(
 
     async getMonthDashboard(userId) {
       const context = await loadPeriodContext(userId, "month");
-      const status = await statusForPeriod(context.user.id, "month");
+      const status = await statusFromContext(context, "month");
 
       return {
         income: roundMoney(context.totals.income),

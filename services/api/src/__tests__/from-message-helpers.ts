@@ -4,6 +4,7 @@ import type { ParserResponse, TransactionIntentResponse } from "@trackx/shared";
 import {
   createFromMessageService,
   createMessageIntentService,
+  type BudgetAlertService,
   type ParserClient,
   type ParseEventRepository,
   type ParseEventRecord,
@@ -36,6 +37,7 @@ export async function createHarness(
       | TransactionIntentResponse
       | Error
       | Array<TransactionIntentResponse | Error>;
+    budgetWarnings?: string[];
     seedRecords?: TransactionRecord[];
   } = {},
 ) {
@@ -53,6 +55,7 @@ export async function createHarness(
     pendingClarifications,
     transactionService,
     options.intentResult,
+    options.budgetWarnings,
   );
   const server = await buildApiServer({
     config,
@@ -159,6 +162,7 @@ function createInMemoryFromMessageService(
     | TransactionIntentResponse
     | Error
     | Array<TransactionIntentResponse | Error>,
+  budgetWarnings?: string[],
 ) {
   const parserResults = Array.isArray(parserResult)
     ? [...parserResult]
@@ -213,7 +217,22 @@ function createInMemoryFromMessageService(
     pending,
     transactions,
     intentService,
+    createBudgetAlertService(budgetWarnings),
   );
+}
+
+function createBudgetAlertService(
+  warnings: string[] | undefined,
+): BudgetAlertService | undefined {
+  if (!warnings) {
+    return undefined;
+  }
+
+  return {
+    async warningsForTransactions() {
+      return warnings;
+    },
+  };
 }
 
 function createIntentClient(

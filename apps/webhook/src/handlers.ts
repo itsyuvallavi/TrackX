@@ -1,5 +1,5 @@
 // Owner: apps/webhook. Telegram message and command handling for webhook updates.
-import { resolveCategoryName } from "@trackx/shared";
+import { formatTelegramBudgets, resolveCategoryName } from "@trackx/shared";
 import type { TrackxApiClient } from "./api-client.js";
 import { deniedMessage, isTelegramUserAllowed } from "./allowlist.js";
 
@@ -131,12 +131,5 @@ async function updateLastCategory(
 function formatBudgets(
   response: Awaited<ReturnType<TrackxApiClient["getBudgetStatus"]>>,
 ): string {
-  const lines = response.budgets
-    .slice(0, 8)
-    .map(
-      (budget) =>
-        `${budget.category}: ${budget.spentAmount}/${budget.limitAmount} ${budget.currency} (${budget.status})`,
-    );
-
-  return lines.length > 0 ? lines.join("\n") : "No budgets found.";
+  return formatTelegramBudgets(response.budgets);
 }

@@ -27,6 +27,14 @@ export type TransactionRecord = {
   deletedAt: string | null;
 };
 
+export type BudgetRecord = {
+  id: string;
+  category: CategoryName;
+  period: "week" | "month";
+  limitAmount: number;
+  currency: Currency;
+};
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -100,6 +108,16 @@ export async function getWeekDashboard(): Promise<DashboardWeekResponse> {
 
 export async function getTransactions(): Promise<TransactionRecord[]> {
   return apiFetch<TransactionRecord[]>("/transactions");
+}
+
+export async function getRecentTransactions(
+  limit: number,
+): Promise<TransactionRecord[]> {
+  return apiFetch<TransactionRecord[]>(`/transactions?limit=${limit}`);
+}
+
+export async function getBudgets(): Promise<BudgetRecord[]> {
+  return apiFetch<BudgetRecord[]>("/budgets");
 }
 
 export async function updateTransaction(

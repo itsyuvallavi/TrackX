@@ -10,12 +10,13 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const input = UpdateLastCategorySchema.parse(await readJsonBody(request));
-    if (input.telegramUserId) {
-      await requireTelegramApiUserId(request, input.telegramUserId);
-    }
+    const userId = await requireTelegramApiUserId(
+      request,
+      input.telegramUserId,
+    );
 
     return NextResponse.json(
-      await getTransactionService().updateLastCategory(input),
+      await getTransactionService().updateLastCategory({ ...input, userId }),
     );
   } catch (error) {
     return toApiErrorResponse(error);

@@ -3,6 +3,8 @@ import {
   DEFAULT_LOCAL_TIMEZONE,
   DEFAULT_LOCAL_USER_EMAIL,
   DEFAULT_LOCAL_USER_ID,
+  seedBudgets,
+  seedCategories,
   type PrismaClient,
 } from "@trackx/db";
 import type { Currency } from "@trackx/shared";
@@ -45,6 +47,8 @@ export function createPrismaUserRepository(
         select: { id: true, defaultCurrency: true, timezone: true },
       });
 
+      await ensureDefaultSettings(user.id);
+
       return user;
     },
 
@@ -64,6 +68,8 @@ export function createPrismaUserRepository(
         select: { id: true, defaultCurrency: true, timezone: true },
       });
 
+      await ensureDefaultSettings(user.id);
+
       return user;
     },
 
@@ -74,10 +80,11 @@ export function createPrismaUserRepository(
       });
 
       if (existing) {
+        await ensureDefaultSettings(existing.id);
         return existing;
       }
 
-      return prisma.user.upsert({
+      const user = await prisma.user.upsert({
         where: { id: DEFAULT_LOCAL_USER_ID },
         create: {
           id: DEFAULT_LOCAL_USER_ID,
@@ -93,6 +100,10 @@ export function createPrismaUserRepository(
         },
         select: { id: true, defaultCurrency: true, timezone: true },
       });
+
+      await ensureDefaultSettings(user.id);
+
+      return user;
     },
 
     async findById(userId) {
@@ -109,4 +120,45 @@ export function createPrismaUserRepository(
       });
     },
   };
+
+  async function ensureDefaultSettings(userId: string): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+      for (const category of seedCategories) {
+        await tx.category.upsert({
+          where: { name: category.name },
+          create: category,
+          update: {
+            kind: category.kind,
+            isDefault: true,
+          },
+        });
+      }
+
+      for (const budget of seedBudgets) {
+        const category = await tx.category.findUniqueOrThrow({
+          where: { name: budget.category },
+          select: { id: true },
+        });
+
+        await tx.budget.upsert({
+          where: {
+            userId_categoryId_period: {
+              userId,
+              categoryId: category.id,
+              period: budget.period,
+            },
+          },
+          create: {
+            userId,
+            categoryId: category.id,
+            period: budget.period,
+            limitAmount: budget.limitAmount,
+            currency: budget.currency,
+            isActive: true,
+          },
+          update: {},
+        });
+      }
+    });
+  }
 }

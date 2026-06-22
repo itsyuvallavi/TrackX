@@ -15,7 +15,7 @@
   "scripts": {
     "build": "pnpm --filter @trackx/db build && pnpm --filter @trackx/shared build && tsc -p tsconfig.json",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run",
+    "test": "pnpm --filter @trackx/shared build && vitest run",
     "typecheck": "pnpm --filter @trackx/db build && pnpm --filter @trackx/shared build && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

@@ -1,4 +1,5 @@
 // Owner: apps/bot. HTTP client for the TrackX API service.
+import { BudgetStatusResponseSchema } from "@trackx/shared";
 import { z } from "zod";
 
 export const BotTransactionSchema = z.object({
@@ -15,21 +16,6 @@ export const FromMessageResponseSchema = z.object({
   clarifyingQuestion: z.string().nullable(),
   feedback: z.string(),
   parser: z.string().nullable(),
-});
-
-export const BudgetStatusResponseSchema = z.object({
-  budgets: z.array(
-    z.object({
-      category: z.string(),
-      period: z.string(),
-      currency: z.string(),
-      limitAmount: z.number(),
-      spentAmount: z.number(),
-      remainingAmount: z.number(),
-      percentageUsed: z.number(),
-      status: z.string(),
-    }),
-  ),
 });
 
 export const MonthDashboardResponseSchema = z.object({

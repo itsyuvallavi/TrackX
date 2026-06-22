@@ -15,6 +15,13 @@ export type BudgetRecord = {
   currency: Currency;
 };
 
+export type BudgetLimitRecordInput = {
+  category: CategoryName;
+  period: BudgetPeriod;
+  limitAmount: number;
+  currency: Currency;
+};
+
 export type BudgetTotalsInput = {
   userId: string;
   currency: Currency;
@@ -30,6 +37,10 @@ export type TransactionTotals = {
 
 export type BudgetRepository = {
   listActive(userId: string, period?: BudgetPeriod): Promise<BudgetRecord[]>;
+  upsertMany(
+    userId: string,
+    budgets: BudgetLimitRecordInput[],
+  ): Promise<BudgetRecord[]>;
   getTransactionTotals(input: BudgetTotalsInput): Promise<TransactionTotals>;
 };
 
@@ -57,8 +68,57 @@ export function createPrismaBudgetRepository(
       }));
     },
 
+    async upsertMany(userId, budgetInputs) {
+      await prisma.$transaction(async (tx) => {
+        for (const input of budgetInputs) {
+          const category = await tx.category.findUniqueOrThrow({
+            where: { name: input.category },
+            select: { id: true },
+          });
+
+          if (input.limitAmount <= 0) {
+            await tx.budget.updateMany({
+              where: {
+                userId,
+                categoryId: category.id,
+                period: input.period,
+              },
+              data: { isActive: false },
+            });
+            continue;
+          }
+
+          await tx.budget.upsert({
+            where: {
+              userId_categoryId_period: {
+                userId,
+                categoryId: category.id,
+                period: input.period,
+              },
+            },
+            create: {
+              userId,
+              categoryId: category.id,
+              period: input.period,
+              limitAmount: input.limitAmount,
+              currency: input.currency,
+              isActive: true,
+            },
+            update: {
+              limitAmount: input.limitAmount,
+              currency: input.currency,
+              isActive: true,
+            },
+          });
+        }
+      });
+
+      return this.listActive(userId);
+    },
+
     async getTransactionTotals(input) {
-      const rows = await prisma.transaction.findMany({
+      const rows = await prisma.transaction.groupBy({
+        by: ["type", "categoryId"],
         where: {
           userId: input.userId,
           deletedAt: null,
@@ -68,8 +128,21 @@ export function createPrismaBudgetRepository(
             lt: input.end,
           },
         },
-        include: { category: true },
+        _sum: { amount: true },
       });
+      const categoryIds = rows
+        .filter((row) => row.type === "expense")
+        .map((row) => row.categoryId);
+      const categories =
+        categoryIds.length > 0
+          ? await prisma.category.findMany({
+              where: { id: { in: categoryIds } },
+              select: { id: true, name: true },
+            })
+          : [];
+      const categoryById = new Map(
+        categories.map((category) => [category.id, category.name]),
+      );
 
       const totals: TransactionTotals = {
         expenses: 0,
@@ -78,7 +151,7 @@ export function createPrismaBudgetRepository(
       };
 
       for (const row of rows) {
-        const amount = row.amount.toNumber();
+        const amount = row._sum.amount?.toNumber() ?? 0;
 
         if (row.type === "income") {
           totals.income += amount;
@@ -89,7 +162,9 @@ export function createPrismaBudgetRepository(
           continue;
         }
 
-        const category = CategoryNameSchema.parse(row.category.name);
+        const category = CategoryNameSchema.parse(
+          categoryById.get(row.categoryId),
+        );
         totals.expenses += amount;
         totals.byCategory.set(
           category,

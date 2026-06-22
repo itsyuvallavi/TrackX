@@ -343,6 +343,7 @@ Ownership:
 - API-owned natural edit intent routing for safe recent-transaction category updates.
 - Postgres-backed pending clarification state for follow-up parser answers.
 - EUR-first budget totals that count transactions in the same currency as the budget.
+- Budget warning feedback after logged expenses when a category reaches 75% of a weekly or monthly budget.
 
 Focused commands:
 
@@ -377,6 +378,8 @@ Budget notes:
 - Budget periods use the user's timezone.
 - Soft-deleted transactions are excluded.
 - Income is excluded from expense budgets and included in month cashflow.
+- Categories at 75% or more of their budget return `warning`; categories over 100% return `over`.
+- Successful message logging appends budget warning lines for affected expense categories.
 - Exchange-rate conversion is not active yet; non-matching currencies are not guessed into budget totals.
 
 ### `@trackx/bot`
@@ -435,6 +438,8 @@ Ownership:
 - Server-side API reads for month/week summaries, budgets, and transactions.
 - Server actions for transaction edit and delete.
 - Dense operational UI for review and correction workflows.
+- Responsive console shell with desktop navigation and mobile bottom navigation.
+- `/auth` placeholder route for the future auth shell; `/login` remains the active email/password entrypoint.
 
 Focused commands:
 
@@ -449,6 +454,10 @@ The web app reads from `WEB_API_BASE_URL` when it is set. When it is unset,
 the app uses same-origin `/api` Route Handlers, which is the default for Vercel
 and the recommended local path while testing dashboard auth. In Docker, set it
 to `http://api:4001` when routing through the Fastify API container.
+
+Local `pnpm web:dev` reads the root `.env` through `apps/web/next.config.ts` so
+Supabase auth middleware can protect `/dashboard`, `/transactions`, and the
+same-origin data APIs during local testing.
 
 ### `@trackx/worker`
 
