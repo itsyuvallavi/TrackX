@@ -121,7 +121,6 @@ export function createPrismaBudgetRepository(
         where: {
           userId: input.userId,
           deletedAt: null,
-          currency: input.currency,
           transactionDate: {
             gte: input.start,
             lt: input.end,
@@ -130,6 +129,9 @@ export function createPrismaBudgetRepository(
         select: {
           type: true,
           amount: true,
+          amountEur: true,
+          amountUsd: true,
+          currency: true,
           category: { select: { name: true } },
         },
       });
@@ -141,7 +143,11 @@ export function createPrismaBudgetRepository(
       };
 
       for (const transaction of transactions) {
-        const amount = transaction.amount.toNumber();
+        const amount = normalizedAmount(transaction, input.currency);
+
+        if (amount === null) {
+          continue;
+        }
 
         if (transaction.type === "income") {
           totals.income += amount;
@@ -163,4 +169,34 @@ export function createPrismaBudgetRepository(
       return totals;
     },
   };
+}
+
+type TransactionTotalRow = {
+  amount: { toNumber(): number };
+  amountEur: { toNumber(): number } | null;
+  amountUsd: { toNumber(): number } | null;
+  currency: Currency;
+};
+
+function normalizedAmount(
+  transaction: TransactionTotalRow,
+  targetCurrency: Currency,
+): number | null {
+  if (targetCurrency === "EUR") {
+    return (
+      transaction.amountEur?.toNumber() ??
+      (transaction.currency === "EUR" ? transaction.amount.toNumber() : null)
+    );
+  }
+
+  if (targetCurrency === "USD") {
+    return (
+      transaction.amountUsd?.toNumber() ??
+      (transaction.currency === "USD" ? transaction.amount.toNumber() : null)
+    );
+  }
+
+  return transaction.currency === targetCurrency
+    ? transaction.amount.toNumber()
+    : null;
 }

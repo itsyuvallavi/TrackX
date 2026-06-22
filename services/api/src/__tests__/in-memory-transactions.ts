@@ -1,6 +1,7 @@
 // Owner: services/api. In-memory transaction repository helpers for API tests.
 import {
   type CreateTransactionRecordInput,
+  type ExchangeRateService,
   type TransactionListSort,
   type TransactionRecord,
   compareTransactionsForList,
@@ -15,6 +16,7 @@ export const defaultUserId = "00000000-0000-4000-8000-000000000001";
 
 export function createInMemoryTransactionService(
   records: TransactionRecord[],
+  exchangeRates?: ExchangeRateService,
 ): TransactionService {
   const users: UserRepository = {
     async ensureAuthUser() {
@@ -112,7 +114,7 @@ export function createInMemoryTransactionService(
     },
   };
 
-  return createTransactionService(users, transactions);
+  return createTransactionService(users, transactions, exchangeRates);
 }
 
 export function transactionRecord(
@@ -126,6 +128,8 @@ export function transactionRecord(
     type: "expense",
     amount: 6.9,
     currency: "EUR",
+    amountEur: 6.9,
+    amountUsd: null,
     category: "Misc",
     description: "movie",
     merchant: null,
@@ -170,6 +174,8 @@ function toTransactionRecord(
     type: input.type,
     amount: input.amount,
     currency: input.currency,
+    amountEur: input.amountEur,
+    amountUsd: input.amountUsd,
     category: input.category,
     description: input.description,
     merchant: input.merchant,

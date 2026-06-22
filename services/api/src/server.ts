@@ -5,12 +5,14 @@ import { createPrismaClient, type PrismaClient } from "@trackx/db";
 import {
   createBudgetAlertService,
   createBudgetService,
+  createExchangeRateService,
   createFromMessageService,
   createHttpParserClient,
   createMessageIntentService,
   createNoopTransactionIntentClient,
   createOpenAiTransactionIntentClient,
   createPrismaBudgetRepository,
+  createPrismaExchangeRateRepository,
   createPrismaParseEventRepository,
   createPrismaPendingClarificationRepository,
   createPrismaTransactionRepository,
@@ -68,6 +70,7 @@ function createDefaultTransactionService(
   return createTransactionService(
     createPrismaUserRepository(prisma),
     createPrismaTransactionRepository(prisma),
+    createExchangeRateService(createPrismaExchangeRateRepository(prisma)),
   );
 }
 

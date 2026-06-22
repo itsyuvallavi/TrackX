@@ -13,6 +13,7 @@ import type {
   TransactionListSort,
 } from "../repositories/transactions.js";
 import type { UserRepository } from "../repositories/users.js";
+import type { ExchangeRateService } from "./exchange-rate-service.js";
 
 export class ApiNotFoundError extends Error {
   constructor(message: string) {
@@ -91,6 +92,7 @@ export type TransactionService = {
 export function createTransactionService(
   users: UserRepository,
   transactions: TransactionRepository,
+  exchangeRates?: ExchangeRateService,
 ): TransactionService {
   async function resolveUser(userId?: string): Promise<string> {
     if (!userId) {
@@ -129,12 +131,20 @@ export function createTransactionService(
       const userId = await resolveUser(input.userId);
       const transactionDate =
         input.transactionDate ?? new Date().toISOString().slice(0, 10);
+      const normalized = await normalizeAmounts({
+        exchangeRates,
+        amount: input.amount,
+        currency: input.currency,
+        transactionDate,
+      });
 
       return transactions.create({
         userId,
         type: input.type,
         amount: input.amount,
         currency: input.currency,
+        amountEur: normalized.amountEur,
+        amountUsd: normalized.amountUsd,
         category: input.category,
         description: input.description,
         merchant: input.merchant ?? null,
@@ -207,6 +217,26 @@ export function createTransactionService(
       return updated;
     },
   };
+}
+
+async function normalizeAmounts(input: {
+  exchangeRates: ExchangeRateService | undefined;
+  amount: number;
+  currency: ApiCreateTransactionInput["currency"];
+  transactionDate: string;
+}) {
+  if (!input.exchangeRates) {
+    return {
+      amountEur: input.currency === "EUR" ? input.amount : null,
+      amountUsd: input.currency === "USD" ? input.amount : null,
+    };
+  }
+
+  return input.exchangeRates.normalize({
+    amount: input.amount,
+    currency: input.currency,
+    date: input.transactionDate,
+  });
 }
 
 function toRepositoryUpdates(

@@ -6,7 +6,9 @@ import {
   createMessageIntentService,
   createNoopTransactionIntentClient,
   createOpenAiTransactionIntentClient,
+  createExchangeRateService,
   createPrismaBudgetRepository,
+  createPrismaExchangeRateRepository,
   createPrismaParseEventRepository,
   createPrismaPendingClarificationRepository,
   createPrismaTransactionRepository,
@@ -59,9 +61,13 @@ function getServices(): ApiRouteServices {
     users,
     createPrismaBudgetRepository(client),
   );
+  const exchangeRateService = createExchangeRateService(
+    createPrismaExchangeRateRepository(client),
+  );
   const transactionService = createTransactionService(
     users,
     createPrismaTransactionRepository(client),
+    exchangeRateService,
   );
 
   services = {

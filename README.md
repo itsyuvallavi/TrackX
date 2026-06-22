@@ -64,7 +64,6 @@ Deferred after MVP:
 - Sentry and deployment pipelines
 - Live scheduled worker jobs
 - Production Redis/BullMQ worker
-- Exchange-rate conversion in budget totals
 
 ## Repository Layout
 
@@ -342,7 +341,7 @@ Ownership:
 - Parser-backed `from-message` route that stores parse events and creates transactions.
 - API-owned natural edit intent routing for safe recent-transaction category updates.
 - Postgres-backed pending clarification state for follow-up parser answers.
-- EUR-first budget totals that count transactions in the same currency as the budget.
+- EUR budget totals that include converted non-EUR transactions through cached exchange rates.
 - Budget warning feedback after logged expenses when a category reaches 75% of a weekly or monthly budget.
 
 Focused commands:
@@ -380,7 +379,7 @@ Budget notes:
 - Income is excluded from expense budgets and included in month cashflow.
 - Categories at 75% or more of their budget return `warning`; categories over 100% return `over`.
 - Successful message logging appends budget warning lines for affected expense categories.
-- Exchange-rate conversion is not active yet; non-matching currencies are not guessed into budget totals.
+- Non-EUR transactions are converted into EUR through Frankfurter exchange rates and cached in Postgres for budget totals.
 
 ### `@trackx/bot`
 

@@ -107,6 +107,37 @@ describe("from-message route", () => {
     ]);
   });
 
+  it("stores EUR-normalized amounts for USD parser output", async () => {
+    const harness = await createHarness(incomeResponse(), {
+      exchangeRates: {
+        async normalize(input) {
+          return {
+            amountEur: input.currency === "USD" ? 172 : input.amount,
+            amountUsd: input.currency === "USD" ? input.amount : null,
+          };
+        },
+      },
+    });
+    const response = await harness.server.inject({
+      method: "POST",
+      url: "/transactions/from-message",
+      payload: {
+        message: "earned 200 dollars",
+        timezone: "Europe/Lisbon",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().transactions).toMatchObject([
+      {
+        amount: 200,
+        currency: "USD",
+        amountEur: 172,
+        amountUsd: 200,
+      },
+    ]);
+  });
+
   it("stores clarification events without creating transactions", async () => {
     const harness = await createHarness(clarificationResponse());
     const response = await harness.server.inject({

@@ -5,6 +5,7 @@ import {
   createFromMessageService,
   createMessageIntentService,
   type BudgetAlertService,
+  type ExchangeRateService,
   type ParserClient,
   type ParseEventRepository,
   type ParseEventRecord,
@@ -38,6 +39,7 @@ export async function createHarness(
       | Error
       | Array<TransactionIntentResponse | Error>;
     budgetWarnings?: string[];
+    exchangeRates?: ExchangeRateService;
     seedRecords?: TransactionRecord[];
   } = {},
 ) {
@@ -46,7 +48,10 @@ export async function createHarness(
   const parserMessages: string[] = [];
   const intentMessages: string[] = [];
   const pendingClarifications: PendingClarificationRecord[] = [];
-  const transactionService = createInMemoryTransactionService(records);
+  const transactionService = createInMemoryTransactionService(
+    records,
+    options.exchangeRates,
+  );
   const fromMessageService = createInMemoryFromMessageService(
     parserResult,
     parseEvents,

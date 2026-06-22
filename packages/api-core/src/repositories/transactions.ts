@@ -21,6 +21,8 @@ export type TransactionRecord = {
   type: TransactionType;
   amount: number;
   currency: Currency;
+  amountEur: number | null;
+  amountUsd: number | null;
   category: CategoryName;
   description: string;
   merchant: string | null;
@@ -39,6 +41,8 @@ export type CreateTransactionRecordInput = {
   type: TransactionType;
   amount: number;
   currency: Currency;
+  amountEur: number | null;
+  amountUsd: number | null;
   category: CategoryName;
   description: string;
   merchant: string | null;
@@ -96,6 +100,8 @@ export function createPrismaTransactionRepository(
           type: input.type,
           amount: input.amount,
           currency: input.currency,
+          amountEur: input.amountEur,
+          amountUsd: input.amountUsd,
           categoryId: category.id,
           description: input.description,
           merchant: input.merchant,
@@ -271,6 +277,8 @@ type TransactionWithCategory = {
   type: TransactionType;
   amount: { toNumber(): number };
   currency: Currency;
+  amountEur: { toNumber(): number } | null;
+  amountUsd: { toNumber(): number } | null;
   category: { name: string };
   description: string;
   merchant: string | null;
@@ -289,6 +297,8 @@ function mapTransaction(row: TransactionWithCategory): TransactionRecord {
     type: row.type,
     amount: row.amount.toNumber(),
     currency: row.currency,
+    amountEur: row.amountEur?.toNumber() ?? null,
+    amountUsd: row.amountUsd?.toNumber() ?? null,
     category: CategoryNameSchema.parse(row.category.name),
     description: row.description,
     merchant: row.merchant,

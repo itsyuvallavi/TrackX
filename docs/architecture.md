@@ -153,7 +153,6 @@ Inside Docker, services use internal hostnames such as `postgres`, `redis`, `par
 - Sentry or production deployment pipelines
 - Live scheduled worker jobs by default
 - Production Redis/BullMQ without a real queue workload
-- Exchange-rate conversion in budget totals
 - Recurring transaction detection
 
 ## Related docs

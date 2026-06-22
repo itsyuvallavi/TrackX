@@ -189,7 +189,7 @@ curl http://localhost:4001/dashboard/week
 curl http://localhost:4001/dashboard/month
 ```
 
-Budget totals are conservative in the MVP: they count non-deleted expense transactions in the same currency as the budget. Exchange-rate conversion is deferred until a dedicated currency slice.
+Budget totals count non-deleted expense transactions in the user's default currency. Non-EUR Telegram/API entries are converted to EUR with Frankfurter rates, cached in Postgres, and then included in EUR budget totals.
 
 ## API From-Message Check
 
