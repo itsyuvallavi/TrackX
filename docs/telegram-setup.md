@@ -22,21 +22,19 @@ Cloudflare webhook setup lives in [cloudflare-webhook.md](./cloudflare-webhook.m
 
 Never commit the token.
 
-## Allow Your User
+## Current Access Mode
 
-Add your numeric Telegram user id to `.env`.
+TrackX is moving toward self-serve Telegram linking from the web Settings page.
+Settings can create one-time hashed link codes, and the Cloudflare webhook path
+can consume them with `/link CODE`. Code generation and linking require the
+`telegram_link_codes` migration to be applied.
 
-```bash
-TELEGRAM_ALLOWED_USER_IDS="123456789"
-```
+For the Cloudflare webhook path, normal expense logging uses the linked
+Telegram account as the only access gate. `/start`, `/help`, and `/link CODE`
+are available before account linking so new users can connect.
 
-Multiple users can be comma-separated.
-
-```bash
-TELEGRAM_ALLOWED_USER_IDS="123456789,987654321"
-```
-
-If the allowlist is empty, the bot denies everyone.
+The older local polling bot still uses `TELEGRAM_ALLOWED_USER_IDS` for laptop
+development. The production Cloudflare webhook does not use that allowlist.
 
 ## Local Development
 
@@ -53,6 +51,13 @@ Then send a normal message to the bot.
 ```text
 spent 15 eur on food
 ```
+
+To connect a web account through the production webhook path:
+
+1. Sign in to the web app.
+2. Open Settings.
+3. Create a Telegram link code.
+4. Send `/link CODE` to the Telegram bot.
 
 The bot forwards text and the Telegram user id to
 `POST /transactions/from-message`, then replies with the API feedback.

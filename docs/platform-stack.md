@@ -146,6 +146,7 @@ still flows through the API and Prisma.
 Source of truth for:
 
 - Users, categories, transactions, budgets, parse events
+- One-time Telegram account link codes
 - Hosted Auth identities, mapped one-to-one into application `users`
 
 ### Why Supabase
@@ -161,6 +162,10 @@ Public table RLS is enabled in hosted Supabase and public table grants are
 revoked from `anon` and `authenticated`. Each public table also has an explicit
 `api_only_no_public_access` deny policy for those roles, so the API remains the
 database boundary.
+
+Telegram linking follows the same rule. Link codes live in Postgres as hashed,
+short-lived records and are consumed through server-side API code. The raw code
+is only shown once to the signed-in user.
 
 ### Keys
 
@@ -225,7 +230,6 @@ Set with `wrangler secret put` or Cloudflare dashboard. Local dev uses `apps/web
 | Variable                    | Purpose                                |
 | --------------------------- | -------------------------------------- |
 | `TELEGRAM_BOT_TOKEN`        | From BotFather                         |
-| `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated allowlist              |
 | `API_BASE_URL`              | Public Vercel API base URL             |
 | `TRACKX_API_SECRET`         | Shared Cloudflare-to-Vercel API secret |
 | `TELEGRAM_WEBHOOK_SECRET`   | Optional webhook verification          |

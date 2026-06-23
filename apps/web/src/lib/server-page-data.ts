@@ -8,6 +8,7 @@ import { ApiError, type BudgetRecord } from "@/lib/api";
 import {
   getBudgetService,
   getTransactionService,
+  getUserRepository,
 } from "@/lib/api-route-runtime";
 
 export async function loadDashboardData(userId: string): Promise<{
@@ -49,6 +50,21 @@ export async function loadBudgets(userId: string): Promise<BudgetRecord[]> {
         })),
       ),
   );
+}
+
+export async function loadTelegramConnection(userId: string): Promise<{
+  connected: boolean;
+  telegramUserId: string | null;
+}> {
+  return withPageDataError(async () => {
+    const connection = await getUserRepository().getTelegramConnection(userId);
+    const telegramUserId = connection?.telegramUserId ?? null;
+
+    return {
+      connected: telegramUserId !== null,
+      telegramUserId,
+    };
+  });
 }
 
 async function withPageDataError<T>(load: () => Promise<T>): Promise<T> {

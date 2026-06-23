@@ -27,6 +27,7 @@ yarn-error.log*
 .turbo/
 .vercel/
 apps/webhook/.wrangler/
+.trackx-backups/
 
 # OS and editor files
 .DS_Store

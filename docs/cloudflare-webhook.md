@@ -7,7 +7,7 @@ TrackX can receive Telegram messages through a Cloudflare Worker instead of the 
 ```text
 Telegram message
   -> Cloudflare Worker (apps/webhook)
-  -> TrackX API (/transactions/from-message locally, /api/... after Vercel route migration)
+  -> TrackX API (/api/... on Vercel, or local API routes when configured)
   -> parser/OpenAI + Supabase (through the API)
   -> Cloudflare Worker replies via Telegram sendMessage
 ```
@@ -35,8 +35,7 @@ pnpm install
 ```bash
 cat > apps/webhook/.dev.vars <<'EOF'
 TELEGRAM_BOT_TOKEN=your-token
-TELEGRAM_ALLOWED_USER_IDS=123456789
-API_BASE_URL=http://localhost:4001
+API_BASE_URL=http://localhost:3000/api
 TRACKX_API_SECRET=local-shared-secret
 TELEGRAM_WEBHOOK_SECRET=optional-local-secret
 EOF
@@ -84,13 +83,18 @@ Set secrets in Cloudflare:
 pnpm env:check -- --target=cloudflare
 cd apps/webhook
 wrangler secret put TELEGRAM_BOT_TOKEN
-wrangler secret put TELEGRAM_ALLOWED_USER_IDS
 wrangler secret put API_BASE_URL
 wrangler secret put TRACKX_API_SECRET
 wrangler secret put TELEGRAM_WEBHOOK_SECRET
 ```
 
-Point `API_BASE_URL` at your public API host. During local experiments this can be a tunnel to the Fastify API. In production it should be the Vercel API base after the route migration.
+Point `API_BASE_URL` at your public API host. In production it should be the
+Vercel API base, for example `https://track-x-web-two.vercel.app/api`, so the
+webhook can call `/telegram/link` and the same-origin transaction routes.
+
+`/start`, `/help`, and `/link CODE` are public. Normal messages are accepted by
+the webhook but must resolve to a linked Telegram account in the Vercel API
+before any data is read or written. Unlinked users get setup guidance.
 
 Register the production worker URL with Telegram using the same `setWebhook` call.
 
@@ -108,7 +112,6 @@ You do not need both in production. Pick one receiver for Telegram.
 | Variable                    | Purpose                                        |
 | --------------------------- | ---------------------------------------------- |
 | `TELEGRAM_BOT_TOKEN`        | Bot token from BotFather                       |
-| `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated allowlist                      |
 | `API_BASE_URL`              | Public or tunneled TrackX API base URL         |
 | `TRACKX_API_SECRET`         | Shared secret for Cloudflare-to-Vercel API     |
 | `DEFAULT_TIMEZONE`          | Default timezone for parsing                   |

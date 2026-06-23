@@ -53,6 +53,12 @@ export async function requireApiUserIdOrTelegram(
   return requireApiUserId();
 }
 
+export function requireApiSecret(request: Request): void {
+  if (!hasValidApiSecret(request)) {
+    throw new ApiUnauthorizedError();
+  }
+}
+
 export function toUnauthorizedResponse(error: unknown): NextResponse | null {
   if (!(error instanceof ApiUnauthorizedError)) {
     return null;

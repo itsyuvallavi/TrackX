@@ -1,16 +1,93 @@
 // Owner: apps/webhook. Offline tests for Telegram webhook handlers.
 import { describe, expect, it } from "vitest";
-import type { TrackxApiClient } from "../api-client.js";
+import {
+  TrackxApiUnauthorizedError,
+  type TrackxApiClient,
+} from "../api-client.js";
 import { handleIncomingMessage, helpText } from "../handlers.js";
 
 describe("handleIncomingMessage", () => {
-  it("denies users outside the allowlist", async () => {
+  it("forwards normal messages without allowlist membership", async () => {
+    const calls: Array<{ telegramUserId?: string }> = [];
     const reply = await handleIncomingMessage(
       { userId: 999, text: "spent 15 eur on food" },
-      options(),
+      options({
+        api: fakeApi({
+          async createFromMessage(input) {
+            calls.push({ telegramUserId: input.telegramUserId });
+            return { feedback: "Logged 15 EUR for Groceries." };
+          },
+        }),
+      }),
     );
 
-    expect(reply).toBe("This Telegram account is not allowed to use TrackX.");
+    expect(calls).toEqual([{ telegramUserId: "999" }]);
+    expect(reply).toBe("Logged 15 EUR for Groceries.");
+  });
+
+  it("asks unlinked users to connect when the API rejects access", async () => {
+    const reply = await handleIncomingMessage(
+      { userId: 999, text: "spent 15 eur on food" },
+      options({
+        api: fakeApi({
+          async createFromMessage() {
+            throw new TrackxApiUnauthorizedError();
+          },
+        }),
+      }),
+    );
+
+    expect(reply).toBe("Connect Telegram in TrackX Settings first.");
+  });
+
+  it("lets an unallowlisted user link with a valid code", async () => {
+    const calls: Array<{ code: string; telegramUserId: string }> = [];
+    const reply = await handleIncomingMessage(
+      { userId: 999, text: "/link ABC123" },
+      options({
+        api: fakeApi({
+          async linkTelegram(input) {
+            calls.push(input);
+            return { status: "linked" };
+          },
+        }),
+      }),
+    );
+
+    expect(calls).toEqual([{ code: "ABC123", telegramUserId: "999" }]);
+    expect(reply).toBe("Telegram connected. Send an expense when ready.");
+  });
+
+  it("explains expired or invalid link codes", async () => {
+    const reply = await handleIncomingMessage(
+      { userId: 999, text: "/link OLD123" },
+      options({
+        api: fakeApi({
+          async linkTelegram() {
+            return { status: "invalid_code" };
+          },
+        }),
+      }),
+    );
+
+    expect(reply).toBe(
+      "Code not recognized or expired. Create a new one in Settings.",
+    );
+  });
+
+  it("explains already-linked Telegram accounts", async () => {
+    const reply = await handleIncomingMessage(
+      { userId: 999, text: "/link ABC123" },
+      options({
+        api: fakeApi({
+          async linkTelegram() {
+            return { status: "telegram_already_linked" };
+          },
+        }),
+      }),
+    );
+
+    expect(reply).toBe("This Telegram account is already connected.");
   });
 
   it("forwards normal text to the API and returns feedback", async () => {
@@ -104,7 +181,11 @@ describe("handleIncomingMessage", () => {
   });
 });
 
-function options(overrides: Partial<{ api: TrackxApiClient }> = {}) {
+function options(
+  overrides: Partial<{
+    api: TrackxApiClient;
+  }> = {},
+) {
   return {
     allowedUserIds: ["123"],
     api: overrides.api ?? fakeApi(),
@@ -115,6 +196,9 @@ function options(overrides: Partial<{ api: TrackxApiClient }> = {}) {
 
 function fakeApi(overrides: Partial<TrackxApiClient> = {}): TrackxApiClient {
   return {
+    async linkTelegram() {
+      return { status: "linked" };
+    },
     async createFromMessage() {
       return {
         feedback: "Logged 15 EUR for Restaurants / Cafes / Fun.",

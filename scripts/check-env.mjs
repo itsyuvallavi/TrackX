@@ -36,11 +36,7 @@ const TARGETS = {
     hostedRequired: ["DATABASE_URL", "DIRECT_URL"],
   },
   cloudflare: {
-    required: [
-      "TELEGRAM_BOT_TOKEN",
-      "TELEGRAM_ALLOWED_USER_IDS",
-      "API_BASE_URL",
-    ],
+    required: ["TELEGRAM_BOT_TOKEN", "API_BASE_URL", "TRACKX_API_SECRET"],
     hostedRequired: ["API_BASE_URL"],
   },
 };

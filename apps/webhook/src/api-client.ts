@@ -13,7 +13,22 @@ const MonthDashboardResponseSchema = z.object({
   currency: z.string(),
 });
 
+const TelegramLinkResponseSchema = z.object({
+  status: z.enum(["linked", "invalid_code", "telegram_already_linked"]),
+});
+
+export class TrackxApiUnauthorizedError extends Error {
+  constructor() {
+    super("TrackX API unauthorized.");
+    this.name = "TrackxApiUnauthorizedError";
+  }
+}
+
 export type TrackxApiClient = {
+  linkTelegram(input: {
+    code: string;
+    telegramUserId: string;
+  }): Promise<z.infer<typeof TelegramLinkResponseSchema>>;
   createFromMessage(input: {
     message: string;
     telegramUserId?: string | undefined;
@@ -53,6 +68,15 @@ export function createTrackxApiClient(
   const authHeaders = { "x-trackx-api-secret": apiSecret };
 
   return {
+    async linkTelegram(input) {
+      return TelegramLinkResponseSchema.parse(
+        await requestJson(`${baseUrl}/telegram/link`, {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify(input),
+        }),
+      );
+    },
     async createFromMessage(input) {
       return FromMessageResponseSchema.parse(
         await requestJson(`${baseUrl}/transactions/from-message`, {
@@ -140,6 +164,10 @@ async function requestJson(
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new TrackxApiUnauthorizedError();
+    }
+
     throw new Error(`TrackX API returned ${response.status}.`);
   }
 

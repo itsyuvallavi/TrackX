@@ -34,6 +34,9 @@ export function createInMemoryTransactionService(
     async findByTelegramUserId() {
       return userRecord();
     },
+    async getTelegramConnection() {
+      return { telegramUserId: "123" };
+    },
   };
   const transactions: TransactionRepository = {
     async create(input) {

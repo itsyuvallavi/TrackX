@@ -61,6 +61,7 @@ model User {
   budgets               Budget[]
   parseEvents           ParseEvent[]
   pendingClarifications PendingClarification[]
+  telegramLinkCodes     TelegramLinkCode[]
   transactions          Transaction[]
 
   @@map("users")
@@ -171,4 +172,20 @@ model PendingClarification {
   @@index([userId, status, expiresAt])
   @@index([telegramUserId, status])
   @@map("pending_clarifications")
+}
+
+model TelegramLinkCode {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  codeHash       String
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  telegramUserId String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id])
+
+  @@index([codeHash, consumedAt, expiresAt])
+  @@index([userId, consumedAt])
+  @@map("telegram_link_codes")
 }

@@ -15,6 +15,10 @@ export type UserRecord = {
   timezone: string;
 };
 
+export type TelegramConnectionRecord = {
+  telegramUserId: string | null;
+};
+
 export type UserRepository = {
   ensureAuthUser(input: {
     authUserId: string;
@@ -24,6 +28,9 @@ export type UserRepository = {
   ensureTelegramUser(telegramUserId: string): Promise<UserRecord>;
   findById(userId: string): Promise<UserRecord | null>;
   findByTelegramUserId(telegramUserId: string): Promise<UserRecord | null>;
+  getTelegramConnection(
+    userId: string,
+  ): Promise<TelegramConnectionRecord | null>;
 };
 
 export function createPrismaUserRepository(
@@ -122,6 +129,13 @@ export function createPrismaUserRepository(
       return prisma.user.findUnique({
         where: { telegramUserId },
         select: { id: true, defaultCurrency: true, timezone: true },
+      });
+    },
+
+    async getTelegramConnection(userId) {
+      return prisma.user.findUnique({
+        where: { id: userId },
+        select: { telegramUserId: true },
       });
     },
   };

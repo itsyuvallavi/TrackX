@@ -1,5 +1,4 @@
 TELEGRAM_BOT_TOKEN=your-token
-TELEGRAM_ALLOWED_USER_IDS=123456789
-API_BASE_URL=http://localhost:4001
+API_BASE_URL=http://localhost:3000/api
 TRACKX_API_SECRET=local-shared-secret
 TELEGRAM_WEBHOOK_SECRET=optional-local-secret

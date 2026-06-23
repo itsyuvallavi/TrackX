@@ -21,10 +21,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             TrackX
           </p>
           <h1 className="mt-2 text-2xl font-semibold text-ink">
-            Sign in to the console
+            Sign in to TrackX
           </h1>
           <p className="mt-2 text-sm text-ink-muted">
-            Review Telegram expenses, budgets, and cleanup actions.
+            Create an account, connect Telegram from Settings, then review
+            expenses and budgets here.
           </p>
         </div>
         <form action={authenticate} className="panel panel-body space-y-4">
@@ -53,6 +54,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           {params.message ? (
             <p className="text-sm text-success">{params.message}</p>
           ) : null}
+          <p className="text-xs leading-5 text-ink-muted">
+            New accounts use email confirmation. After confirming, TrackX will
+            open Settings so you can connect Telegram.
+          </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
               className="btn-primary"
@@ -99,7 +104,9 @@ async function authenticate(formData: FormData) {
   }
 
   redirect(
-    intent === "sign-up" ? "/login?message=Check your email." : nextPath,
+    intent === "sign-up"
+      ? "/login?message=Check your email, then connect Telegram from Settings."
+      : nextPath,
   );
 }
 

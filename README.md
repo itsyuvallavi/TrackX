@@ -412,6 +412,7 @@ Ownership:
 
 - Cloudflare Worker entrypoint for Telegram webhook updates.
 - Allowlist checks and command handling aligned with `apps/bot`.
+- `/link CODE` account-link command for the Cloudflare webhook path.
 - Calls the TrackX API and replies through Telegram `sendMessage`.
 
 Focused commands:
@@ -434,11 +435,13 @@ Ownership:
 
 - Next.js App Router dashboard.
 - Supabase email/password auth for `/dashboard`, `/transactions`, and protected web API routes.
+- Account confirmation now leads new users toward Settings so Telegram can be connected before regular use.
 - Server-side API reads for month/week summaries, budgets, and transactions.
 - Server actions for transaction edit and delete.
 - Dense operational UI for review and correction workflows.
 - Responsive console shell with desktop navigation and mobile bottom navigation.
 - `/auth` placeholder route for the future auth shell; `/login` remains the active email/password entrypoint.
+- Telegram self-serve linking is being added behind the API boundary. Settings can create one-time link codes; the Cloudflare webhook can consume them through `/link CODE`.
 
 Focused commands:
 
@@ -498,7 +501,7 @@ Variables used by TrackX services and tooling:
 | `API_BASE_URL`              | API service base URL                               |
 | `TRACKX_API_SECRET`         | Shared Cloudflare-to-Vercel API secret             |
 | `TELEGRAM_BOT_TOKEN`        | Telegram bot token                                 |
-| `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated allowlist of Telegram user IDs     |
+| `TELEGRAM_ALLOWED_USER_IDS` | Local polling bot allowlist of Telegram user IDs   |
 | `BOT_PORT`                  | Bot service port                                   |
 | `DEFAULT_TIMEZONE`          | Default user timezone                              |
 | `DEFAULT_CURRENCY`          | Default user currency                              |
@@ -513,7 +516,9 @@ App-specific variables read outside `@trackx/config`:
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key for dashboard auth sessions |
 | `WORKER_ENABLE_SCHEDULES`              | Enable BullMQ cron schedules (`true` / `false`)           |
 
-Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS`, `API_BASE_URL`, `TRACKX_API_SECRET`, optional `TELEGRAM_WEBHOOK_SECRET`). See [docs/cloudflare-webhook.md](./docs/cloudflare-webhook.md).
+Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELEGRAM_BOT_TOKEN`, `API_BASE_URL`, `TRACKX_API_SECRET`, optional `TELEGRAM_WEBHOOK_SECRET`). See [docs/cloudflare-webhook.md](./docs/cloudflare-webhook.md).
+
+Telegram access is account-owned. Settings can generate short-lived one-time codes stored in the `telegram_link_codes` table, and the Cloudflare webhook can consume them with `/link CODE`. Production writes require the linked Telegram ID and the existing webhook-to-Vercel `TRACKX_API_SECRET`.
 
 Production scheduled summaries, if added, should use Vercel Cron HTTP routes rather than Redis/BullMQ.
 
@@ -538,8 +543,8 @@ Run `pnpm env:check -- --target=local` before local startup and `pnpm env:check 
 
 ### Bot does not respond
 
-- Set `TELEGRAM_BOT_TOKEN` and your numeric id in `TELEGRAM_ALLOWED_USER_IDS`
-- An empty allowlist denies everyone by design
+- Set `TELEGRAM_BOT_TOKEN`
+- For the production webhook path, link Telegram from Settings before logging expenses
 - Start API and parser before `pnpm bot:dev`
 
 ### Worker exits immediately

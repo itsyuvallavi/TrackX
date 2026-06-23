@@ -11,12 +11,15 @@ import {
   createPrismaExchangeRateRepository,
   createPrismaParseEventRepository,
   createPrismaPendingClarificationRepository,
+  createPrismaTelegramLinkCodeRepository,
   createPrismaTransactionRepository,
   createPrismaUserRepository,
+  createTelegramLinkService,
   createTransactionService,
   type BudgetService,
   type FromMessageService,
   type ParserClient,
+  type TelegramLinkService,
   ParserClientError,
   type TransactionService,
   type UserRepository,
@@ -27,6 +30,7 @@ import { createOpenAiParser } from "@trackx/parser-core";
 type ApiRouteServices = {
   budgetService: BudgetService;
   fromMessageService: FromMessageService;
+  telegramLinkService: TelegramLinkService;
   transactionService: TransactionService;
   userRepository: UserRepository;
 };
@@ -44,6 +48,10 @@ export function getFromMessageService(): FromMessageService {
 
 export function getTransactionService(): TransactionService {
   return getServices().transactionService;
+}
+
+export function getTelegramLinkService(): TelegramLinkService {
+  return getServices().telegramLinkService;
 }
 
 export function getUserRepository(): UserRepository {
@@ -79,6 +87,9 @@ function getServices(): ApiRouteServices {
       transactionService,
       createMessageIntentService(getIntentClient(), transactionService),
       createBudgetAlertService(budgetService),
+    ),
+    telegramLinkService: createTelegramLinkService(
+      createPrismaTelegramLinkCodeRepository(client),
     ),
     transactionService,
     userRepository: users,

@@ -2,15 +2,19 @@
 import { CommandHeader } from "@/components/command-header";
 import { ResponsiveAppShell } from "@/components/responsive-app-shell";
 import { BudgetPlanner } from "@/components/settings/budget-planner";
+import { TelegramLinkPanel } from "@/components/settings/telegram-link-panel";
 import { ApiError } from "@/lib/api";
 import { requireAuthenticatedUser } from "@/lib/auth";
-import { loadBudgets } from "@/lib/server-page-data";
+import { loadBudgets, loadTelegramConnection } from "@/lib/server-page-data";
 
 export default async function SettingsPage() {
   const user = await requireAuthenticatedUser();
 
   try {
-    const budgets = await loadBudgets(user.id);
+    const [budgets, telegramConnection] = await Promise.all([
+      loadBudgets(user.id),
+      loadTelegramConnection(user.id),
+    ]);
 
     return (
       <ResponsiveAppShell currentPath="/settings">
@@ -22,7 +26,7 @@ export default async function SettingsPage() {
 
           <BudgetPlanner initialBudgets={budgets} />
 
-          <TelegramSettings />
+          <TelegramLinkPanel initialConnection={telegramConnection} />
         </main>
       </ResponsiveAppShell>
     );
@@ -44,28 +48,4 @@ export default async function SettingsPage() {
       </ResponsiveAppShell>
     );
   }
-}
-
-function TelegramSettings() {
-  return (
-    <section className="panel overflow-hidden">
-      <div className="panel-header">
-        <h2 className="text-sm font-semibold text-ink">Telegram</h2>
-      </div>
-      <div className="panel-body space-y-3">
-        <p className="text-sm leading-6 text-ink-muted">
-          Telegram is the main input for TrackX. Send expenses or income to your
-          connected bot, then review them in Dashboard and Transactions.
-        </p>
-        <div className="rounded-3xl bg-accent-muted p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-accent-dark">
-            Example
-          </p>
-          <p className="mt-2 text-sm font-semibold text-ink">
-            spent 4.50 euro on coffee
-          </p>
-        </div>
-      </div>
-    </section>
-  );
 }
