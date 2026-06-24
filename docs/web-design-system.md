@@ -133,6 +133,26 @@ Telegram setup
 Profile actions stay in the top account menu
 ```
 
+Settings budget planner:
+
+- `/settings` is the approved account settings surface.
+- `/settings/budget-lab` redirects to `/settings`.
+- The budget flow should stay slim: `Budget limit`, then a homepage-style
+  `Budgets` panel with `Mandatory` and `Spending` tabs.
+- `Budget limit` sets the user's monthly spending pot.
+- `Mandatory` keeps fixed costs editable without extra explanation.
+- `Spending` lets the user tune category limits after fixed costs are set aside.
+  AI suggestions must allocate 100% of the money left after mandatory expenses.
+- Saving Settings writes the dashboard budgets directly: monthly budgets come
+  from `Mandatory + Spending`, while weekly budgets are derived from `Spending`
+  only so fixed monthly costs do not appear in the weekly view.
+- Removed categories must be saved as zero-value rows, not omitted, so the API
+  can deactivate stale dashboard budgets.
+- When a category slider exceeds the available spending pool, show a temporary
+  red state, then clamp it back to the allowed value on release.
+- Avoid duplicate summary cards inside this prototype. If a total appears in a
+  section header, do not repeat it in a second tile.
+
 ## Components
 
 Dashboard-specific composition components live in `apps/web/src/components/dashboard`.

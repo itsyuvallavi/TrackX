@@ -86,9 +86,29 @@ describe("budget routes", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       income: 200,
-      expenses: 123,
-      net: 77,
+      expenses: 205,
+      net: -5,
       currency: "EUR",
+    });
+  });
+
+  it("returns week dashboard expenses only for weekly budget categories", async () => {
+    const server = await serverWithBudgetService();
+    const response = await server.inject({
+      method: "GET",
+      url: "/dashboard/week",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      expenses: 21,
+      currency: "EUR",
+      budgets: [
+        {
+          category: "Transport",
+          spentAmount: 21,
+        },
+      ],
     });
   });
 
@@ -223,6 +243,14 @@ const transactions: Array<{
     amount: 21,
     currency: "EUR",
     category: "Transport",
+    date: new Date("2026-06-18T00:00:00.000Z"),
+  },
+  {
+    userId: defaultUserId,
+    type: "expense",
+    amount: 82,
+    currency: "EUR",
+    category: "Utilities",
     date: new Date("2026-06-18T00:00:00.000Z"),
   },
   {

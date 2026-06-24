@@ -17,6 +17,8 @@ export type TransactionRecord = {
   type: TransactionType;
   amount: number;
   currency: Currency;
+  amountEur: number | null;
+  amountUsd: number | null;
   category: CategoryName;
   description: string;
   merchant: string | null;

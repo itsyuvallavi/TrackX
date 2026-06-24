@@ -73,6 +73,7 @@ describe("transaction routes", () => {
     expect(updated.statusCode).toBe(200);
     expect(updated.json()).toMatchObject({
       amount: 20,
+      amountEur: 20,
       category: "Groceries",
       description: "market",
     });
@@ -180,6 +181,8 @@ function createInMemoryTransactionService(): TransactionService {
         type: input.type,
         amount: input.amount,
         currency: input.currency,
+        amountEur: input.amountEur,
+        amountUsd: input.amountUsd,
         category: input.category,
         description: input.description,
         merchant: input.merchant,
@@ -193,6 +196,16 @@ function createInMemoryTransactionService(): TransactionService {
 
       records.push(record);
       return record;
+    },
+    async findById(id, userId) {
+      return (
+        records.find(
+          (entry) =>
+            entry.id === id &&
+            entry.userId === userId &&
+            entry.deletedAt === null,
+        ) ?? null
+      );
     },
     async listByUser(userId) {
       return [...records]

@@ -44,6 +44,9 @@ export function createInMemoryTransactionService(
       records.push(record);
       return record;
     },
+    async findById(id, userId) {
+      return findActive(records, id, userId);
+    },
     async listByUser(userId) {
       return [...records]
         .filter(

@@ -207,7 +207,30 @@ export function createTransactionService(
 
     async update(id, input) {
       const userId = await resolveUser(input.userId);
+      const existing = await transactions.findById(id, userId);
+
+      if (!existing) {
+        throw new ApiNotFoundError("Transaction not found.");
+      }
+
       const updates = toRepositoryUpdates(input);
+      const needsNormalization =
+        input.amount !== undefined ||
+        input.currency !== undefined ||
+        input.transactionDate !== undefined;
+
+      if (needsNormalization) {
+        const normalized = await normalizeAmounts({
+          exchangeRates,
+          amount: input.amount ?? existing.amount,
+          currency: input.currency ?? existing.currency,
+          transactionDate: input.transactionDate ?? existing.transactionDate,
+        });
+
+        updates.amountEur = normalized.amountEur;
+        updates.amountUsd = normalized.amountUsd;
+      }
+
       const updated = await transactions.update(id, userId, updates);
 
       if (!updated) {

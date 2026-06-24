@@ -55,6 +55,8 @@ export type UpdateTransactionRecordInput = Partial<
   Pick<
     CreateTransactionRecordInput,
     | "amount"
+    | "amountEur"
+    | "amountUsd"
     | "currency"
     | "category"
     | "description"
@@ -65,6 +67,7 @@ export type UpdateTransactionRecordInput = Partial<
 
 export type TransactionRepository = {
   create(input: CreateTransactionRecordInput): Promise<TransactionRecord>;
+  findById(id: string, userId: string): Promise<TransactionRecord | null>;
   listByUser(userId: string): Promise<TransactionRecord[]>;
   listRecentByUser(
     userId: string,
@@ -113,6 +116,15 @@ export function createPrismaTransactionRepository(
       });
 
       return mapTransaction(transaction);
+    },
+
+    async findById(id, userId) {
+      const transaction = await prisma.transaction.findFirst({
+        where: { id, userId, deletedAt: null },
+        include: { category: true },
+      });
+
+      return transaction ? mapTransaction(transaction) : null;
     },
 
     async listByUser(userId) {
@@ -193,6 +205,12 @@ export function createPrismaTransactionRepository(
         where: { id },
         data: {
           ...(input.amount !== undefined ? { amount: input.amount } : {}),
+          ...(input.amountEur !== undefined
+            ? { amountEur: input.amountEur }
+            : {}),
+          ...(input.amountUsd !== undefined
+            ? { amountUsd: input.amountUsd }
+            : {}),
           ...(input.currency !== undefined ? { currency: input.currency } : {}),
           ...(category ? { categoryId: category.id } : {}),
           ...(input.description !== undefined

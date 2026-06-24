@@ -5,8 +5,8 @@ import { useState } from "react";
 import type { TransactionRecord } from "@/lib/api";
 import {
   formatDate,
-  formatMoney,
   formatTransactionDescription,
+  transactionDisplayAmount,
 } from "@/lib/format";
 import { DeleteTransactionButton } from "./delete-transaction-button";
 import { EditTransactionForm } from "./edit-transaction-form";
@@ -74,47 +74,66 @@ export function TransactionsTable({ transactions }: TransactionsTableProps) {
               </tr>
             ) : (
               transactions.map((transaction) => (
-                <tr key={transaction.id}>
-                  <td className="whitespace-nowrap text-xs text-ink-muted">
-                    {formatDate(transaction.transactionDate)}
-                  </td>
-                  <td>
-                    <div className="text-sm font-medium text-ink">
-                      {formatTransactionDescription(transaction.description)}
-                    </div>
-                    {transaction.merchant ? (
-                      <div className="text-xs text-ink-muted">
-                        {transaction.merchant}
-                      </div>
-                    ) : null}
-                  </td>
-                  <td className="text-xs text-ink-muted">
-                    {transaction.category}
-                  </td>
-                  <td
-                    className={`text-right text-sm font-semibold tabular-nums ${
-                      transaction.type === "income"
-                        ? "text-success"
-                        : "text-ink"
-                    }`}
-                  >
-                    {transaction.type === "income" ? "+" : "−"}
-                    {formatMoney(transaction.amount, transaction.currency)}
-                  </td>
-                  <td>
-                    <TransactionRowActions
-                      transaction={transaction}
-                      onEdit={() => setEditingId(transaction.id)}
-                      className="justify-end"
-                    />
-                  </td>
-                </tr>
+                <TransactionTableRow
+                  key={transaction.id}
+                  transaction={transaction}
+                  onEdit={() => setEditingId(transaction.id)}
+                />
               ))
             )}
           </tbody>
         </table>
       </section>
     </div>
+  );
+}
+
+function TransactionTableRow({
+  transaction,
+  onEdit,
+}: {
+  transaction: TransactionRecord;
+  onEdit: () => void;
+}) {
+  const amount = transactionDisplayAmount(transaction);
+
+  return (
+    <tr>
+      <td className="whitespace-nowrap text-xs text-ink-muted">
+        {formatDate(transaction.transactionDate)}
+      </td>
+      <td>
+        <div className="text-sm font-medium text-ink">
+          {formatTransactionDescription(transaction.description)}
+        </div>
+        {transaction.merchant ? (
+          <div className="text-xs text-ink-muted">{transaction.merchant}</div>
+        ) : null}
+      </td>
+      <td className="text-xs text-ink-muted">{transaction.category}</td>
+      <td
+        className={`text-right text-sm font-semibold tabular-nums ${
+          transaction.type === "income" ? "text-success" : "text-ink"
+        }`}
+      >
+        <div>
+          {transaction.type === "income" ? "+" : "−"}
+          {amount.primary}
+        </div>
+        {amount.secondary ? (
+          <div className="text-[11px] font-medium text-ink-muted">
+            {amount.secondary}
+          </div>
+        ) : null}
+      </td>
+      <td>
+        <TransactionRowActions
+          transaction={transaction}
+          onEdit={onEdit}
+          className="justify-end"
+        />
+      </td>
+    </tr>
   );
 }
 

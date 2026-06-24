@@ -1,12 +1,35 @@
 // Owner: apps/web. Formatting helpers for dashboard currency and dates.
 import type { BudgetStatusLevel, Currency } from "@trackx/shared";
 
+type TransactionAmount = {
+  amount: number;
+  currency: Currency;
+  amountEur?: number | null;
+};
+
 export function formatMoney(amount: number, currency: Currency): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     maximumFractionDigits: 2,
   }).format(amount);
+}
+
+export function transactionDisplayAmount(transaction: TransactionAmount): {
+  primary: string;
+  secondary: string | null;
+} {
+  if (transaction.currency !== "EUR" && transaction.amountEur != null) {
+    return {
+      primary: formatMoney(transaction.amountEur, "EUR"),
+      secondary: formatMoney(transaction.amount, transaction.currency),
+    };
+  }
+
+  return {
+    primary: formatMoney(transaction.amount, transaction.currency),
+    secondary: null,
+  };
 }
 
 export function formatDate(value: string): string {

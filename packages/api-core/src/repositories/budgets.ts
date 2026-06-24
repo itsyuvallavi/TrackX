@@ -143,7 +143,10 @@ export function createPrismaBudgetRepository(
       };
 
       for (const transaction of transactions) {
-        const amount = normalizedAmount(transaction, input.currency);
+        const amount = normalizeTransactionAmountForBudget(
+          transaction,
+          input.currency,
+        );
 
         if (amount === null) {
           continue;
@@ -178,21 +181,23 @@ type TransactionTotalRow = {
   currency: Currency;
 };
 
-function normalizedAmount(
+export function normalizeTransactionAmountForBudget(
   transaction: TransactionTotalRow,
   targetCurrency: Currency,
 ): number | null {
   if (targetCurrency === "EUR") {
     return (
+      (transaction.currency === "EUR" ? transaction.amount.toNumber() : null) ??
       transaction.amountEur?.toNumber() ??
-      (transaction.currency === "EUR" ? transaction.amount.toNumber() : null)
+      null
     );
   }
 
   if (targetCurrency === "USD") {
     return (
+      (transaction.currency === "USD" ? transaction.amount.toNumber() : null) ??
       transaction.amountUsd?.toNumber() ??
-      (transaction.currency === "USD" ? transaction.amount.toNumber() : null)
+      null
     );
   }
 

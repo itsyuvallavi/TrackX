@@ -244,7 +244,7 @@ async function successFeedback(
     }
 
     return appendBudgetWarnings(
-      `Logged ${transaction.amount} ${transaction.currency} for ${transaction.category}.`,
+      `Logged ${formatLoggedAmount(transaction)} for ${transaction.category}.`,
       await budgetWarnings(budgetAlerts, userId, transactions),
     );
   }
@@ -254,9 +254,9 @@ async function successFeedback(
       return sum;
     }
 
-    return sum + transaction.amount;
+    return sum + displayAmount(transaction).amount;
   }, 0);
-  const currency = transactions[0]?.currency ?? "EUR";
+  const currency = displayAmount(transactions[0]).currency;
 
   return appendBudgetWarnings(
     `Logged ${transactions.length} transactions totaling ${total} ${currency}.`,
@@ -282,4 +282,32 @@ function appendBudgetWarnings(feedback: string, warnings: string[]): string {
   }
 
   return [feedback, ...warnings].join("\n");
+}
+
+function formatLoggedAmount(transaction: TransactionRecord): string {
+  const display = displayAmount(transaction);
+
+  if (
+    display.currency === transaction.currency &&
+    display.amount === transaction.amount
+  ) {
+    return `${display.amount} ${display.currency}`;
+  }
+
+  return `${display.amount} ${display.currency} (${transaction.amount} ${transaction.currency})`;
+}
+
+function displayAmount(transaction: TransactionRecord | undefined): {
+  amount: number;
+  currency: TransactionRecord["currency"];
+} {
+  if (!transaction) {
+    return { amount: 0, currency: "EUR" };
+  }
+
+  if (transaction.currency !== "EUR" && transaction.amountEur !== null) {
+    return { amount: transaction.amountEur, currency: "EUR" };
+  }
+
+  return { amount: transaction.amount, currency: transaction.currency };
 }

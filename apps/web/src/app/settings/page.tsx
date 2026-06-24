@@ -1,7 +1,7 @@
 // Owner: apps/web. Authenticated settings page for account and integrations.
 import { CommandHeader } from "@/components/command-header";
 import { ResponsiveAppShell } from "@/components/responsive-app-shell";
-import { BudgetPlanner } from "@/components/settings/budget-planner";
+import { BudgetLabDemo } from "@/components/settings/budget-lab-demo";
 import { TelegramLinkPanel } from "@/components/settings/telegram-link-panel";
 import { ApiError } from "@/lib/api";
 import { requireAuthenticatedUser } from "@/lib/auth";
@@ -20,11 +20,11 @@ export default async function SettingsPage() {
       <ResponsiveAppShell currentPath="/settings">
         <main
           id="main-content"
-          className="mx-auto max-w-3xl space-y-5 px-4 py-4 lg:space-y-6 lg:py-6"
+          className="mx-auto max-w-7xl space-y-3 px-3 py-3 sm:space-y-5 sm:px-4 sm:py-4 lg:space-y-6 lg:py-6"
         >
           <CommandHeader title="Settings" />
 
-          <BudgetPlanner initialBudgets={budgets} />
+          <BudgetLabDemo initialBudgets={budgets} />
 
           <TelegramLinkPanel initialConnection={telegramConnection} />
         </main>

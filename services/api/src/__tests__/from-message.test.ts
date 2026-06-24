@@ -136,6 +136,9 @@ describe("from-message route", () => {
         amountUsd: 200,
       },
     ]);
+    expect(response.json().feedback).toBe(
+      "Logged 172 EUR (200 USD) for Income.",
+    );
   });
 
   it("stores clarification events without creating transactions", async () => {

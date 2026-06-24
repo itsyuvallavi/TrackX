@@ -6,6 +6,7 @@ import {
   calculateBudgetStatus,
   getPeriodWindow,
   roundMoney,
+  type BudgetStatus,
   type BudgetLimitUpsert,
   type BudgetPeriod,
   type BudgetStatusResponse,
@@ -145,7 +146,7 @@ export function createBudgetService(
       const status = await statusFromContext(context, "week");
 
       return {
-        expenses: roundMoney(context.totals.expenses),
+        expenses: roundMoney(sumBudgetSpent(status.budgets)),
         currency: status.currency,
         window: status.window,
         budgets: status.budgets,
@@ -166,4 +167,8 @@ export function createBudgetService(
       };
     },
   };
+}
+
+function sumBudgetSpent(budgets: BudgetStatus[]): number {
+  return budgets.reduce((total, budget) => total + budget.spentAmount, 0);
 }

@@ -1,21 +1,26 @@
 // Owner: apps/web. Client-side animated money display for dashboard metrics.
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Currency } from "@trackx/shared";
 
 type AnimatedMoneyProps = {
   amount: number;
   currency: Currency;
   className?: string;
+  animation?: "always" | "mount" | "none";
 };
 
 export function AnimatedMoney({
   amount,
+  animation = "always",
   currency,
   className,
 }: AnimatedMoneyProps) {
-  const [displayAmount, setDisplayAmount] = useState(0);
+  const hasAnimatedRef = useRef(false);
+  const [displayAmount, setDisplayAmount] = useState(
+    animation === "none" ? amount : 0,
+  );
   const formatter = useMemo(
     () =>
       new Intl.NumberFormat("en-US", {
@@ -27,6 +32,17 @@ export function AnimatedMoney({
   );
 
   useEffect(() => {
+    const shouldAnimate =
+      animation === "always" ||
+      (animation === "mount" && !hasAnimatedRef.current);
+
+    if (!shouldAnimate) {
+      setDisplayAmount(amount);
+      return;
+    }
+
+    hasAnimatedRef.current = true;
+
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setDisplayAmount(amount);
       return;
@@ -50,7 +66,7 @@ export function AnimatedMoney({
     frame = requestAnimationFrame(tick);
 
     return () => cancelAnimationFrame(frame);
-  }, [amount]);
+  }, [amount, animation]);
 
   return <span className={className}>{formatter.format(displayAmount)}</span>;
 }

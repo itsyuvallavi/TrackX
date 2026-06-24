@@ -2,8 +2,8 @@
 import type { TransactionRecord } from "@/lib/api";
 import {
   formatDate,
-  formatMoney,
   formatTransactionDescription,
+  transactionDisplayAmount,
 } from "@/lib/format";
 
 type TransactionFeedItemProps = {
@@ -17,6 +17,7 @@ export function TransactionFeedItem({
 }: TransactionFeedItemProps) {
   const income = transaction.type === "income";
   const description = formatTransactionDescription(transaction.description);
+  const amount = transactionDisplayAmount(transaction);
   const meta = transaction.merchant
     ? `${formatDate(transaction.transactionDate)} · ${transaction.merchant}`
     : `${formatDate(transaction.transactionDate)} · ${transaction.category}`;
@@ -27,14 +28,21 @@ export function TransactionFeedItem({
         <p className="min-w-0 truncate text-[13px] font-medium leading-5 text-ink sm:text-sm">
           {description}
         </p>
-        <p
-          className={`shrink-0 text-[13px] font-semibold tabular-nums leading-5 sm:text-sm ${
+        <div
+          className={`shrink-0 text-right text-[13px] font-semibold tabular-nums leading-5 sm:text-sm ${
             income ? "text-success" : "text-ink"
           }`}
         >
-          {income ? "+" : "−"}
-          {formatMoney(transaction.amount, transaction.currency)}
-        </p>
+          <p>
+            {income ? "+" : "−"}
+            {amount.primary}
+          </p>
+          {amount.secondary ? (
+            <p className="text-[10px] font-medium leading-3 text-ink-muted sm:text-[11px]">
+              {amount.secondary}
+            </p>
+          ) : null}
+        </div>
       </div>
       <div className="mt-0.5 flex items-center justify-between gap-2">
         <p className="min-w-0 truncate text-[11px] leading-4 text-ink-muted sm:text-xs">
