@@ -17,8 +17,13 @@ import type {
   TransactionRepository,
 } from "../repositories/transactions.js";
 import type { MessageIntentService } from "./message-intent-service.js";
+import type { MessageEventService } from "./message-event-service.js";
 import type { TransactionService } from "./transaction-service.js";
 import type { BudgetAlertService } from "./budget-alert-service.js";
+import {
+  clarificationFeedback,
+  successFeedback,
+} from "./from-message-feedback.js";
 
 const CLARIFICATION_TTL_MS = 30 * 60 * 1000;
 
@@ -28,6 +33,7 @@ export const FromMessageSchema = z.object({
   telegramUserId: z.string().min(1).optional(),
   timezone: z.string().min(1),
   defaultCurrency: CurrencySchema.optional(),
+  correlationId: z.string().min(1).optional(),
 });
 
 export type FromMessageInput = z.infer<typeof FromMessageSchema>;
@@ -51,12 +57,21 @@ export function createFromMessageService(
   transactions: TransactionService,
   messageIntents?: MessageIntentService,
   budgetAlerts?: BudgetAlertService,
+  messageEvents?: MessageEventService,
 ): FromMessageService {
   return {
     async createFromMessage(input) {
       const userId = await transactions.resolveMessageUser({
         userId: input.userId,
         telegramUserId: input.telegramUserId,
+      });
+      await messageEvents?.record({
+        correlationId: input.correlationId,
+        source: "api",
+        eventType: "message_user_resolved",
+        userId,
+        telegramUserId: input.telegramUserId,
+        rawMessage: input.message,
       });
       const scope = clarificationScope(userId, input.telegramUserId);
       const pending = await pendingClarifications.findActive(scope);
@@ -83,6 +98,14 @@ export function createFromMessageService(
         timezone: input.timezone,
         defaultCurrency: input.defaultCurrency,
       });
+      await messageEvents?.record({
+        correlationId: input.correlationId,
+        source: "api",
+        eventType: "parser_started",
+        userId,
+        telegramUserId: input.telegramUserId,
+        rawMessage: rawMessage,
+      });
 
       try {
         const parsed = await parser.parseTransaction(parserRequest);
@@ -100,6 +123,15 @@ export function createFromMessageService(
             rawMessage: parserMessage,
             parserResponse: parsed,
             status: "clarification",
+          });
+          await messageEvents?.record({
+            correlationId: input.correlationId,
+            source: "api",
+            eventType: "parser_clarification",
+            userId,
+            telegramUserId: input.telegramUserId,
+            rawMessage: rawMessage,
+            metadata: { parser: parsed.parser },
           });
 
           return {
@@ -127,6 +159,18 @@ export function createFromMessageService(
           parserResponse: parsed,
           status: "success",
         });
+        await messageEvents?.record({
+          correlationId: input.correlationId,
+          source: "api",
+          eventType: "transactions_created",
+          userId,
+          telegramUserId: input.telegramUserId,
+          rawMessage: rawMessage,
+          metadata: {
+            parser: parsed.parser,
+            transactionCount: created.length,
+          },
+        });
 
         return {
           transactions: created,
@@ -144,6 +188,16 @@ export function createFromMessageService(
               error instanceof Error ? error.message : "Unknown parser error.",
           },
           status: "failure",
+        });
+        await messageEvents?.record({
+          correlationId: input.correlationId,
+          source: "api",
+          eventType: "parser_failed",
+          status: "failed",
+          userId,
+          telegramUserId: input.telegramUserId,
+          rawMessage: rawMessage,
+          error,
         });
 
         throw error;
@@ -222,92 +276,4 @@ function localDay(date: Date, timezone: string): string {
   );
 
   return `${parts.year}-${parts.month}-${parts.day}`;
-}
-
-function clarificationFeedback(parsed: ParserResponse): string {
-  return `I need one detail: ${parsed.clarifyingQuestion ?? "Can you clarify?"}`;
-}
-
-async function successFeedback(
-  transactions: TransactionRecord[],
-  userId: string,
-  budgetAlerts: BudgetAlertService | undefined,
-): Promise<string> {
-  if (transactions.length === 0) {
-    return "No transactions were created.";
-  }
-
-  if (transactions.length === 1) {
-    const [transaction] = transactions;
-    if (!transaction) {
-      return "No transactions were created.";
-    }
-
-    return appendBudgetWarnings(
-      `Logged ${formatLoggedAmount(transaction)} for ${transaction.category}.`,
-      await budgetWarnings(budgetAlerts, userId, transactions),
-    );
-  }
-
-  const total = transactions.reduce((sum, transaction) => {
-    if (transaction.type === "income") {
-      return sum;
-    }
-
-    return sum + displayAmount(transaction).amount;
-  }, 0);
-  const currency = displayAmount(transactions[0]).currency;
-
-  return appendBudgetWarnings(
-    `Logged ${transactions.length} transactions totaling ${total} ${currency}.`,
-    await budgetWarnings(budgetAlerts, userId, transactions),
-  );
-}
-
-async function budgetWarnings(
-  budgetAlerts: BudgetAlertService | undefined,
-  userId: string,
-  transactions: TransactionRecord[],
-): Promise<string[]> {
-  if (!budgetAlerts) {
-    return [];
-  }
-
-  return budgetAlerts.warningsForTransactions({ userId, transactions });
-}
-
-function appendBudgetWarnings(feedback: string, warnings: string[]): string {
-  if (warnings.length === 0) {
-    return feedback;
-  }
-
-  return [feedback, ...warnings].join("\n");
-}
-
-function formatLoggedAmount(transaction: TransactionRecord): string {
-  const display = displayAmount(transaction);
-
-  if (
-    display.currency === transaction.currency &&
-    display.amount === transaction.amount
-  ) {
-    return `${display.amount} ${display.currency}`;
-  }
-
-  return `${display.amount} ${display.currency} (${transaction.amount} ${transaction.currency})`;
-}
-
-function displayAmount(transaction: TransactionRecord | undefined): {
-  amount: number;
-  currency: TransactionRecord["currency"];
-} {
-  if (!transaction) {
-    return { amount: 0, currency: "EUR" };
-  }
-
-  if (transaction.currency !== "EUR" && transaction.amountEur !== null) {
-    return { amount: transaction.amountEur, currency: "EUR" };
-  }
-
-  return { amount: transaction.amount, currency: transaction.currency };
 }

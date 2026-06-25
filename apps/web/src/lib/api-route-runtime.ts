@@ -4,11 +4,13 @@ import {
   createBudgetService,
   createFromMessageService,
   createMessageIntentService,
+  createMessageEventService,
   createNoopTransactionIntentClient,
   createOpenAiTransactionIntentClient,
   createExchangeRateService,
   createPrismaBudgetRepository,
   createPrismaExchangeRateRepository,
+  createPrismaMessageEventRepository,
   createPrismaParseEventRepository,
   createPrismaPendingClarificationRepository,
   createPrismaTelegramLinkCodeRepository,
@@ -18,6 +20,7 @@ import {
   createTransactionService,
   type BudgetService,
   type FromMessageService,
+  type MessageEventService,
   type ParserClient,
   type TelegramLinkService,
   ParserClientError,
@@ -30,6 +33,7 @@ import { createOpenAiParser } from "@trackx/parser-core";
 type ApiRouteServices = {
   budgetService: BudgetService;
   fromMessageService: FromMessageService;
+  messageEventService: MessageEventService;
   telegramLinkService: TelegramLinkService;
   transactionService: TransactionService;
   userRepository: UserRepository;
@@ -44,6 +48,10 @@ export function getBudgetService(): BudgetService {
 
 export function getFromMessageService(): FromMessageService {
   return getServices().fromMessageService;
+}
+
+export function getMessageEventService(): MessageEventService {
+  return getServices().messageEventService;
 }
 
 export function getTransactionService(): TransactionService {
@@ -77,6 +85,9 @@ function getServices(): ApiRouteServices {
     createPrismaTransactionRepository(client),
     exchangeRateService,
   );
+  const messageEventService = createMessageEventService(
+    createPrismaMessageEventRepository(client),
+  );
 
   services = {
     budgetService,
@@ -87,7 +98,9 @@ function getServices(): ApiRouteServices {
       transactionService,
       createMessageIntentService(getIntentClient(), transactionService),
       createBudgetAlertService(budgetService),
+      messageEventService,
     ),
+    messageEventService,
     telegramLinkService: createTelegramLinkService(
       createPrismaTelegramLinkCodeRepository(client),
     ),

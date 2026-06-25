@@ -17,6 +17,22 @@ const TelegramLinkResponseSchema = z.object({
   status: z.enum(["linked", "invalid_code", "telegram_already_linked"]),
 });
 
+const SystemEventResponseSchema = z.object({
+  accepted: z.boolean(),
+});
+
+type SystemEventInput = {
+  correlationId: string;
+  source: string;
+  eventType: string;
+  status?: "ok" | "ignored" | "failed" | undefined;
+  telegramUserId?: string | undefined;
+  telegramMessageId?: string | undefined;
+  rawMessagePreview?: string | undefined;
+  metadata?: Record<string, unknown> | undefined;
+  errorMessage?: string | undefined;
+};
+
 export class TrackxApiUnauthorizedError extends Error {
   constructor() {
     super("TrackX API unauthorized.");
@@ -34,7 +50,9 @@ export type TrackxApiClient = {
     telegramUserId?: string | undefined;
     timezone: string;
     defaultCurrency: string;
+    correlationId?: string | undefined;
   }): Promise<{ feedback: string }>;
+  recordSystemEvent(input: SystemEventInput): Promise<void>;
   getBudgetStatus(input: {
     period: "week" | "month";
     telegramUserId?: string | undefined;
@@ -80,6 +98,15 @@ export function createTrackxApiClient(
     async createFromMessage(input) {
       return FromMessageResponseSchema.parse(
         await requestJson(`${baseUrl}/transactions/from-message`, {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify(input),
+        }),
+      );
+    },
+    async recordSystemEvent(input) {
+      SystemEventResponseSchema.parse(
+        await requestJson(`${baseUrl}/system-events`, {
           method: "POST",
           headers: authHeaders,
           body: JSON.stringify(input),

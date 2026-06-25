@@ -62,6 +62,8 @@ curl -X POST "https://api.telegram.org/bot<token>/setWebhook" \
 ```
 
 Send a Telegram message and confirm the worker log shows the request and the bot replies.
+When the API is reachable, the webhook also writes safe lifecycle breadcrumbs
+to Supabase `message_events`.
 
 ## Production deploy
 
@@ -97,6 +99,38 @@ the webhook but must resolve to a linked Telegram account in the Vercel API
 before any data is read or written. Unlinked users get setup guidance.
 
 Register the production worker URL with Telegram using the same `setWebhook` call.
+
+## Operational trace
+
+TrackX writes a correlation ID for each Telegram update. The Worker writes
+`telegram_webhook_unauthorized`, `telegram_update_received`,
+`telegram_update_ignored`, `telegram_reply_sent`, and
+`telegram_webhook_failed` events through the protected Vercel
+`/api/system-events` route. The API adds auth, parser, and transaction events
+with the same correlation ID. If Telegram reports `401 Unauthorized`, search
+for `telegram_webhook_unauthorized` first and verify the Telegram webhook
+secret token matches Cloudflare `TELEGRAM_WEBHOOK_SECRET`.
+
+Use Supabase Table Editor or SQL Editor:
+
+```sql
+select
+  "createdAt",
+  "correlationId",
+  "source",
+  "eventType",
+  "status",
+  "telegramUserId",
+  "telegramMessageId",
+  "rawMessagePreview",
+  "errorMessage"
+from message_events
+order by "createdAt" desc
+limit 100;
+```
+
+These events are for operations only. They do not replace `parse_events`, which
+keeps parser-specific audit data once the message reaches parsing.
 
 ## Polling bot vs webhook worker
 

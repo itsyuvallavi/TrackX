@@ -204,6 +204,7 @@ function fakeApi(overrides: Partial<TrackxApiClient> = {}): TrackxApiClient {
         feedback: "Logged 15 EUR for Restaurants / Cafes / Fun.",
       };
     },
+    async recordSystemEvent() {},
     async getBudgetStatus() {
       return {
         period: "week",

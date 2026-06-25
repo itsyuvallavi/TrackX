@@ -14,7 +14,9 @@ export type HandlerOptions = {
 
 export type IncomingMessage = {
   userId?: number | undefined;
+  messageId?: number | undefined;
   text?: string | undefined;
+  correlationId?: string | undefined;
 };
 
 export async function handleIncomingMessage(
@@ -36,11 +38,19 @@ export async function handleIncomingMessage(
   }
 
   return protectedApiCall(async () => {
-    const response = await options.api.createFromMessage({
+    const input: Parameters<TrackxApiClient["createFromMessage"]>[0] = {
       message: text,
       telegramUserId: telegramUserId(message),
       timezone: options.timezone,
       defaultCurrency: options.defaultCurrency,
+    };
+
+    if (message.correlationId) {
+      input.correlationId = message.correlationId;
+    }
+
+    const response = await options.api.createFromMessage({
+      ...input,
     });
 
     return response.feedback;

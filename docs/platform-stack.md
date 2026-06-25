@@ -123,6 +123,8 @@ Current implementation uses server-side fetch through the web app:
 
 The web app uses Supabase directly only for Auth session cookies. Business data
 still flows through the API and Prisma.
+Operational Telegram/API traces are written to the API-only `message_events`
+table so Cloudflare and Vercel events can be joined by correlation ID.
 
 ### Keys
 
@@ -147,6 +149,7 @@ Source of truth for:
 
 - Users, categories, transactions, budgets, parse events
 - One-time Telegram account link codes
+- API-only message lifecycle events for production traceability
 - Hosted Auth identities, mapped one-to-one into application `users`
 
 ### Why Supabase
