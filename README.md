@@ -521,7 +521,7 @@ Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELE
 Telegram access is account-owned. Settings can generate short-lived one-time codes stored in the `telegram_link_codes` table, and the Cloudflare webhook can consume them with `/link CODE`. Production writes require the linked Telegram ID and the existing webhook-to-Vercel `TRACKX_API_SECRET`.
 
 Operational message traces are stored in Supabase `message_events`. To inspect
-recent Telegram/API flow evidence, run:
+recent Telegram/API flow evidence and timing data, run:
 
 ```sql
 select
@@ -531,11 +531,15 @@ select
   "eventType",
   "status",
   "telegramUserId",
-  "errorMessage"
+  "errorMessage",
+  metadata
 from message_events
 order by "createdAt" desc
 limit 100;
 ```
+
+Timing fields such as `elapsedMs`, `parserDurationMs`, `dbWriteDurationMs`, and
+`replySendDurationMs` live inside `metadata`.
 
 Production scheduled summaries, if added, should use Vercel Cron HTTP routes rather than Redis/BullMQ.
 

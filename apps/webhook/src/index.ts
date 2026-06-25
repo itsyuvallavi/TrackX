@@ -10,6 +10,7 @@ import {
 
 export default {
   async fetch(request: Request, env: WebhookEnv): Promise<Response> {
+    const startedAt = Date.now();
     const correlationId = crypto.randomUUID();
     const api = createTrackxApiClient(env.API_BASE_URL, env.TRACKX_API_SECRET);
 
@@ -29,6 +30,7 @@ export default {
         eventType: "telegram_webhook_unauthorized",
         status: "failed",
         metadata: {
+          elapsedMs: elapsedSince(startedAt),
           hasSecretHeader: request.headers.has(
             "x-telegram-bot-api-secret-token",
           ),
@@ -48,6 +50,7 @@ export default {
         telegramUserId: userId,
         telegramMessageId: messageId,
         rawMessagePreview: text,
+        metadata: { elapsedMs: elapsedSince(startedAt) },
       });
 
       if (chatId === undefined) {
@@ -58,7 +61,10 @@ export default {
           telegramUserId: userId,
           telegramMessageId: messageId,
           rawMessagePreview: text,
-          metadata: { reason: "missing_chat_id" },
+          metadata: {
+            elapsedMs: elapsedSince(startedAt),
+            reason: "missing_chat_id",
+          },
         });
         return new Response("ok", { status: 200 });
       }
@@ -86,6 +92,7 @@ export default {
         defaultCurrency: env.DEFAULT_CURRENCY,
       });
 
+      const replyStartedAt = Date.now();
       await sendTelegramMessage(env, chatId, reply);
       await recordWebhookEvent(api, {
         correlationId,
@@ -93,7 +100,11 @@ export default {
         telegramUserId: userId,
         telegramMessageId: messageId,
         rawMessagePreview: text,
-        metadata: { replyPreview: preview(reply) },
+        metadata: {
+          elapsedMs: elapsedSince(startedAt),
+          replySendDurationMs: elapsedSince(replyStartedAt),
+          replyPreview: preview(reply),
+        },
       });
       return new Response("ok", { status: 200 });
     } catch (error) {
@@ -101,6 +112,7 @@ export default {
         correlationId,
         eventType: "telegram_webhook_failed",
         status: "failed",
+        metadata: { elapsedMs: elapsedSince(startedAt) },
         errorMessage: error instanceof Error ? error.message : String(error),
       });
       console.error(
@@ -164,4 +176,8 @@ function preview(value: string | undefined): string | undefined {
   return normalized.length <= 180
     ? normalized
     : `${normalized.slice(0, 177)}...`;
+}
+
+function elapsedSince(startedAt: number): number {
+  return Date.now() - startedAt;
 }

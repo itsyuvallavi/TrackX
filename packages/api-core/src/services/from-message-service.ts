@@ -12,10 +12,7 @@ import type {
   PendingClarificationRepository,
   PendingClarificationScope,
 } from "../repositories/pending-clarifications.js";
-import type {
-  TransactionRecord,
-  TransactionRepository,
-} from "../repositories/transactions.js";
+import type { TransactionRecord } from "../repositories/transactions.js";
 import type { MessageIntentService } from "./message-intent-service.js";
 import type { MessageEventService } from "./message-event-service.js";
 import type { TransactionService } from "./transaction-service.js";
@@ -24,6 +21,7 @@ import {
   clarificationFeedback,
   successFeedback,
 } from "./from-message-feedback.js";
+import { createTransactionsFromParsed } from "./from-message-transactions.js";
 
 const CLARIFICATION_TTL_MS = 30 * 60 * 1000;
 
@@ -61,6 +59,8 @@ export function createFromMessageService(
 ): FromMessageService {
   return {
     async createFromMessage(input) {
+      const flowStartedAt = Date.now();
+      const resolveStartedAt = Date.now();
       const userId = await transactions.resolveMessageUser({
         userId: input.userId,
         telegramUserId: input.telegramUserId,
@@ -72,6 +72,10 @@ export function createFromMessageService(
         userId,
         telegramUserId: input.telegramUserId,
         rawMessage: input.message,
+        metadata: {
+          elapsedMs: elapsedSince(flowStartedAt),
+          userResolveDurationMs: elapsedSince(resolveStartedAt),
+        },
       });
       const scope = clarificationScope(userId, input.telegramUserId);
       const pending = await pendingClarifications.findActive(scope);
@@ -105,12 +109,16 @@ export function createFromMessageService(
         userId,
         telegramUserId: input.telegramUserId,
         rawMessage: rawMessage,
+        metadata: { elapsedMs: elapsedSince(flowStartedAt) },
       });
 
       try {
+        const parserStartedAt = Date.now();
         const parsed = await parser.parseTransaction(parserRequest);
+        const parserDurationMs = elapsedSince(parserStartedAt);
 
         if (parsed.needsClarification) {
+          const clarificationWriteStartedAt = Date.now();
           await pendingClarifications.saveActive({
             ...scope,
             originalMessage: rawMessage,
@@ -131,7 +139,14 @@ export function createFromMessageService(
             userId,
             telegramUserId: input.telegramUserId,
             rawMessage: rawMessage,
-            metadata: { parser: parsed.parser },
+            metadata: {
+              elapsedMs: elapsedSince(flowStartedAt),
+              parser: parsed.parser,
+              parserDurationMs,
+              clarificationWriteDurationMs: elapsedSince(
+                clarificationWriteStartedAt,
+              ),
+            },
           });
 
           return {
@@ -143,6 +158,7 @@ export function createFromMessageService(
           };
         }
 
+        const dbWriteStartedAt = Date.now();
         const created = await createTransactionsFromParsed(
           transactions,
           rawMessage,
@@ -150,7 +166,9 @@ export function createFromMessageService(
           parsed,
           input.timezone,
         );
+        const dbWriteDurationMs = elapsedSince(dbWriteStartedAt);
 
+        const cleanupStartedAt = Date.now();
         await pendingClarifications.resolveActive(scope);
 
         await parseEvents.create({
@@ -159,6 +177,10 @@ export function createFromMessageService(
           parserResponse: parsed,
           status: "success",
         });
+        const cleanupDurationMs = elapsedSince(cleanupStartedAt);
+        const feedbackStartedAt = Date.now();
+        const feedback = await successFeedback(created, userId, budgetAlerts);
+        const feedbackDurationMs = elapsedSince(feedbackStartedAt);
         await messageEvents?.record({
           correlationId: input.correlationId,
           source: "api",
@@ -167,7 +189,12 @@ export function createFromMessageService(
           telegramUserId: input.telegramUserId,
           rawMessage: rawMessage,
           metadata: {
+            elapsedMs: elapsedSince(flowStartedAt),
             parser: parsed.parser,
+            parserDurationMs,
+            dbWriteDurationMs,
+            cleanupDurationMs,
+            feedbackDurationMs,
             transactionCount: created.length,
           },
         });
@@ -176,7 +203,7 @@ export function createFromMessageService(
           transactions: created,
           needsClarification: false,
           clarifyingQuestion: null,
-          feedback: await successFeedback(created, userId, budgetAlerts),
+          feedback,
           parser: parsed.parser,
         };
       } catch (error) {
@@ -197,6 +224,7 @@ export function createFromMessageService(
           userId,
           telegramUserId: input.telegramUserId,
           rawMessage: rawMessage,
+          metadata: { elapsedMs: elapsedSince(flowStartedAt) },
           error,
         });
 
@@ -234,46 +262,6 @@ function combineClarification(
   return `Original message: ${pending.originalMessage}. Clarification answer: ${answer}.`;
 }
 
-async function createTransactionsFromParsed(
-  transactions: TransactionService,
-  rawMessage: string,
-  userId: string,
-  parsed: ParserResponse,
-  timezone: string,
-): Promise<TransactionRecord[]> {
-  const created: TransactionRecord[] = [];
-  const transactionDate = localDay(new Date(), timezone);
-
-  for (const transaction of parsed.transactions) {
-    created.push(
-      await transactions.create({
-        userId,
-        type: transaction.type,
-        amount: transaction.amount,
-        currency: transaction.currency,
-        category: transaction.category,
-        description: transaction.description,
-        merchant: transaction.merchant ?? null,
-        source: "telegram",
-        rawMessage,
-        transactionDate,
-      }),
-    );
-  }
-
-  return created;
-}
-
-function localDay(date: Date, timezone: string): string {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const parts = Object.fromEntries(
-    formatter.formatToParts(date).map((part) => [part.type, part.value]),
-  );
-
-  return `${parts.year}-${parts.month}-${parts.day}`;
+function elapsedSince(startedAt: number): number {
+  return Date.now() - startedAt;
 }

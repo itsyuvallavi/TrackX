@@ -107,9 +107,13 @@ TrackX writes a correlation ID for each Telegram update. The Worker writes
 `telegram_update_ignored`, `telegram_reply_sent`, and
 `telegram_webhook_failed` events through the protected Vercel
 `/api/system-events` route. The API adds auth, parser, and transaction events
-with the same correlation ID. If Telegram reports `401 Unauthorized`, search
-for `telegram_webhook_unauthorized` first and verify the Telegram webhook
-secret token matches Cloudflare `TELEGRAM_WEBHOOK_SECRET`.
+with the same correlation ID. Timing data is stored in each event `metadata`
+object, including fields such as `elapsedMs`, `parserDurationMs`,
+`dbWriteDurationMs`, and `replySendDurationMs`.
+
+If Telegram reports `401 Unauthorized`, search for
+`telegram_webhook_unauthorized` first and verify the Telegram webhook secret
+token matches Cloudflare `TELEGRAM_WEBHOOK_SECRET`.
 
 Use Supabase Table Editor or SQL Editor:
 
@@ -123,7 +127,8 @@ select
   "telegramUserId",
   "telegramMessageId",
   "rawMessagePreview",
-  "errorMessage"
+  "errorMessage",
+  metadata
 from message_events
 order by "createdAt" desc
 limit 100;
