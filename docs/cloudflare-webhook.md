@@ -109,7 +109,9 @@ TrackX writes a correlation ID for each Telegram update. The Worker writes
 `/api/system-events` route. The API adds auth, parser, and transaction events
 with the same correlation ID. Timing data is stored in each event `metadata`
 object, including fields such as `elapsedMs`, `parserDurationMs`,
-`dbWriteDurationMs`, and `replySendDurationMs`.
+`dbWriteDurationMs`, `replySendDurationMs`, `telegramSentAt`, and
+`telegramToWebhookMs`. Worker-side event writes use Cloudflare `waitUntil` so
+logging does not block the Telegram reply path in production.
 
 If Telegram reports `401 Unauthorized`, search for
 `telegram_webhook_unauthorized` first and verify the Telegram webhook secret

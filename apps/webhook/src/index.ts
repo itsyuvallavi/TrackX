@@ -9,7 +9,11 @@ import {
 } from "./telegram.js";
 
 export default {
-  async fetch(request: Request, env: WebhookEnv): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: WebhookEnv,
+    ctx?: ExecutionContext,
+  ): Promise<Response> {
     const startedAt = Date.now();
     const correlationId = crypto.randomUUID();
     const api = createTrackxApiClient(env.API_BASE_URL, env.TRACKX_API_SECRET);
@@ -25,7 +29,7 @@ export default {
     }
 
     if (!isWebhookAuthorized(request, env)) {
-      await recordWebhookEvent(api, {
+      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, {
         correlationId,
         eventType: "telegram_webhook_unauthorized",
         status: "failed",
@@ -36,25 +40,30 @@ export default {
           ),
         },
         errorMessage: "Telegram webhook secret mismatch.",
-      });
+      }));
       return new Response("Unauthorized.", { status: 401 });
     }
 
     try {
       const body = await request.json();
-      const { chatId, userId, messageId, text } = readTelegramUpdate(body);
+      const { chatId, userId, messageId, messageDate, text } =
+        readTelegramUpdate(body);
 
-      await recordWebhookEvent(api, {
+      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, {
         correlationId,
         eventType: "telegram_update_received",
         telegramUserId: userId,
         telegramMessageId: messageId,
         rawMessagePreview: text,
-        metadata: { elapsedMs: elapsedSince(startedAt) },
-      });
+        metadata: {
+          elapsedMs: elapsedSince(startedAt),
+          telegramSentAt: telegramSentAt(messageDate),
+          telegramToWebhookMs: telegramToWebhookMs(messageDate, startedAt),
+        },
+      }));
 
       if (chatId === undefined) {
-        await recordWebhookEvent(api, {
+        await scheduleWebhookEvent(ctx, recordWebhookEvent(api, {
           correlationId,
           eventType: "telegram_update_ignored",
           status: "ignored",
@@ -65,7 +74,7 @@ export default {
             elapsedMs: elapsedSince(startedAt),
             reason: "missing_chat_id",
           },
-        });
+        }));
         return new Response("ok", { status: 200 });
       }
 
@@ -94,7 +103,7 @@ export default {
 
       const replyStartedAt = Date.now();
       await sendTelegramMessage(env, chatId, reply);
-      await recordWebhookEvent(api, {
+      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, {
         correlationId,
         eventType: "telegram_reply_sent",
         telegramUserId: userId,
@@ -105,16 +114,16 @@ export default {
           replySendDurationMs: elapsedSince(replyStartedAt),
           replyPreview: preview(reply),
         },
-      });
+      }));
       return new Response("ok", { status: 200 });
     } catch (error) {
-      await recordWebhookEvent(api, {
+      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, {
         correlationId,
         eventType: "telegram_webhook_failed",
         status: "failed",
         metadata: { elapsedMs: elapsedSince(startedAt) },
         errorMessage: error instanceof Error ? error.message : String(error),
-      });
+      }));
       console.error(
         "[webhook] Failed to process Telegram update:",
         error instanceof Error ? error.message : error,
@@ -166,6 +175,18 @@ async function recordWebhookEvent(
   }
 }
 
+async function scheduleWebhookEvent(
+  ctx: ExecutionContext | undefined,
+  event: Promise<void>,
+): Promise<void> {
+  if (ctx) {
+    ctx.waitUntil(event);
+    return;
+  }
+
+  await event;
+}
+
 function preview(value: string | undefined): string | undefined {
   const normalized = value?.replace(/\s+/g, " ").trim();
 
@@ -180,4 +201,19 @@ function preview(value: string | undefined): string | undefined {
 
 function elapsedSince(startedAt: number): number {
   return Date.now() - startedAt;
+}
+
+function telegramSentAt(messageDate: number | undefined): string | undefined {
+  return messageDate === undefined
+    ? undefined
+    : new Date(messageDate * 1000).toISOString();
+}
+
+function telegramToWebhookMs(
+  messageDate: number | undefined,
+  webhookStartedAt: number,
+): number | undefined {
+  return messageDate === undefined
+    ? undefined
+    : webhookStartedAt - messageDate * 1000;
 }

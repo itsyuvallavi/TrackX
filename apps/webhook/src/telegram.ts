@@ -4,6 +4,7 @@ import type { WebhookEnv } from "./env.js";
 export type TelegramUpdate = {
   message?: {
     message_id?: number;
+    date?: number;
     from?: { id?: number };
     chat?: { id?: number };
     text?: string;
@@ -14,6 +15,7 @@ export function readTelegramUpdate(body: unknown): {
   chatId?: number | undefined;
   userId?: number | undefined;
   messageId?: number | undefined;
+  messageDate?: number | undefined;
   text?: string | undefined;
 } {
   const update = body as TelegramUpdate;
@@ -22,6 +24,7 @@ export function readTelegramUpdate(body: unknown): {
     chatId?: number | undefined;
     userId?: number | undefined;
     messageId?: number | undefined;
+    messageDate?: number | undefined;
     text?: string | undefined;
   } = {};
 
@@ -35,6 +38,10 @@ export function readTelegramUpdate(body: unknown): {
 
   if (message?.message_id !== undefined) {
     result.messageId = message.message_id;
+  }
+
+  if (message?.date !== undefined) {
+    result.messageDate = message.date;
   }
 
   if (message?.text !== undefined) {

@@ -1,5 +1,5 @@
 // Owner: apps/web. Same-origin natural-language transaction API route.
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { FromMessageSchema, type FromMessageInput } from "@trackx/api-core";
 import { requireTelegramApiUserId } from "@/lib/api-route-auth";
 import { readJsonBody, toApiErrorResponse } from "@/lib/api-route-errors";
@@ -16,14 +16,14 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     input = FromMessageSchema.parse(await readJsonBody(request));
-    await recordFromMessageEvent(input, "api_from_message_received", {
+    scheduleFromMessageEvent(input, "api_from_message_received", {
       metadata: { elapsedMs: elapsedSince(startedAt) },
     });
     const userId = await requireTelegramApiUserId(
       request,
       input.telegramUserId,
     );
-    await recordFromMessageEvent(input, "api_auth_resolved", {
+    scheduleFromMessageEvent(input, "api_auth_resolved", {
       userId,
       metadata: { elapsedMs: elapsedSince(startedAt) },
     });
@@ -35,7 +35,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
     if (input) {
-      await recordFromMessageEvent(input, "api_from_message_failed", {
+      scheduleFromMessageEvent(input, "api_from_message_failed", {
         status: "failed",
         error,
         metadata: { elapsedMs: elapsedSince(startedAt) },
@@ -46,7 +46,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 }
 
-async function recordFromMessageEvent(
+function scheduleFromMessageEvent(
   input: FromMessageInput,
   eventType: string,
   extra: {
@@ -55,6 +55,19 @@ async function recordFromMessageEvent(
     error?: unknown;
     metadata?: Record<string, unknown>;
   } = {},
+): void {
+  after(() => recordFromMessageEvent(input, eventType, extra));
+}
+
+async function recordFromMessageEvent(
+  input: FromMessageInput,
+  eventType: string,
+  extra: {
+    userId?: string;
+    status?: "ok" | "failed";
+    error?: unknown;
+    metadata?: Record<string, unknown>;
+  },
 ): Promise<void> {
   await getMessageEventService().record({
     correlationId: input.correlationId,

@@ -539,7 +539,9 @@ limit 100;
 ```
 
 Timing fields such as `elapsedMs`, `parserDurationMs`, `dbWriteDurationMs`, and
-`replySendDurationMs` live inside `metadata`.
+`replySendDurationMs` live inside `metadata`. Telegram webhook events also
+record `telegramSentAt` and `telegramToWebhookMs` when Telegram includes the
+original message timestamp.
 
 Production scheduled summaries, if added, should use Vercel Cron HTTP routes rather than Redis/BullMQ.
 

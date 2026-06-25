@@ -78,19 +78,24 @@ export function createFromMessageService(
         },
       });
       const scope = clarificationScope(userId, input.telegramUserId);
+      const pendingLookupStartedAt = Date.now();
       const pending = await pendingClarifications.findActive(scope);
+      const pendingLookupDurationMs = elapsedSince(pendingLookupStartedAt);
       const parserMessage = pending
         ? combineClarification(pending, input.message)
         : input.message;
       const rawMessage = pending?.originalMessage ?? input.message;
+      let intentDurationMs: number | undefined;
 
       if (!pending && messageIntents) {
+        const intentStartedAt = Date.now();
         const intentResult = await tryHandleIntent(messageIntents, {
           userId,
           message: input.message,
           timezone: input.timezone,
           defaultCurrency: input.defaultCurrency,
         });
+        intentDurationMs = elapsedSince(intentStartedAt);
 
         if (intentResult.handled) {
           return intentResult;
@@ -109,7 +114,11 @@ export function createFromMessageService(
         userId,
         telegramUserId: input.telegramUserId,
         rawMessage: rawMessage,
-        metadata: { elapsedMs: elapsedSince(flowStartedAt) },
+        metadata: compactMetadata({
+          elapsedMs: elapsedSince(flowStartedAt),
+          pendingLookupDurationMs,
+          intentDurationMs,
+        }),
       });
 
       try {
@@ -264,4 +273,12 @@ function combineClarification(
 
 function elapsedSince(startedAt: number): number {
   return Date.now() - startedAt;
+}
+
+function compactMetadata(
+  metadata: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(metadata).filter(([, value]) => value !== undefined),
+  );
 }
