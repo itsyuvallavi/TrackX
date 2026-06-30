@@ -7,6 +7,7 @@ import type { TransactionRecord } from "@trackx/api-core";
 import { ApiError, type BudgetRecord } from "@/lib/api";
 import {
   getBudgetService,
+  getShortcutImportService,
   getTransactionService,
   getUserRepository,
 } from "@/lib/api-route-runtime";
@@ -63,6 +64,24 @@ export async function loadTelegramConnection(userId: string): Promise<{
     return {
       connected: telegramUserId !== null,
       telegramUserId,
+    };
+  });
+}
+
+export async function loadShortcutImportToken(userId: string): Promise<{
+  connected: boolean;
+  tokenPreview: string | null;
+  lastUsedAt: string | null;
+  createdAt: string | null;
+}> {
+  return withPageDataError(async () => {
+    const token = await getShortcutImportService().getActiveToken(userId);
+
+    return {
+      connected: Boolean(token),
+      tokenPreview: token?.tokenPreview ?? null,
+      lastUsedAt: token?.lastUsedAt ?? null,
+      createdAt: token?.createdAt ?? null,
     };
   });
 }

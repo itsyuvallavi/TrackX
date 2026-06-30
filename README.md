@@ -42,7 +42,7 @@ pnpm bot:dev      # requires TELEGRAM_BOT_TOKEN and allowlist in .env
 pnpm worker:dev   # requires Redis from pnpm infra:up
 ```
 
-Architecture notes live in [docs/architecture.md](./docs/architecture.md). Target cloud platform decisions live in [docs/platform-stack.md](./docs/platform-stack.md). Full local paths live in [docs/local-development.md](./docs/local-development.md).
+Architecture notes live in [docs/architecture.md](./docs/architecture.md). Target cloud platform decisions live in [docs/platform-stack.md](./docs/platform-stack.md). Full local paths live in [docs/local-development.md](./docs/local-development.md). Apple Wallet Shortcut setup lives in [docs/apple-wallet-shortcut.md](./docs/apple-wallet-shortcut.md).
 
 ## MVP Scope
 
@@ -86,6 +86,7 @@ packages/
   shared/              Zod schemas, types, category rules, budget helpers
 
 docs/
+  apple-wallet-shortcut.md
   architecture.md
   cloudflare-webhook.md
   local-development.md
@@ -164,6 +165,7 @@ pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
 pnpm db:studio
+pnpm logs:live
 pnpm infra:config
 pnpm infra:up
 pnpm infra:down
@@ -520,8 +522,26 @@ Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELE
 
 Telegram access is account-owned. Settings can generate short-lived one-time codes stored in the `telegram_link_codes` table, and the Cloudflare webhook can consume them with `/link CODE`. Production writes require the linked Telegram ID and the existing webhook-to-Vercel `TRACKX_API_SECRET`.
 
-Operational message traces are stored in Supabase `message_events`. To inspect
-recent Telegram/API flow evidence and timing data, run:
+Operational message traces are stored in Supabase `message_events`. To watch
+Telegram, Cloudflare Worker, Vercel API, parser, database write, and reply
+events in one live terminal stream, run:
+
+```sh
+pnpm logs:live
+```
+
+Useful options:
+
+```sh
+pnpm logs:live -- --limit 10 --interval 1000
+pnpm logs:live -- --once --limit 20
+pnpm logs:live -- --timezone Europe/Lisbon
+```
+
+The command reads `DATABASE_URL`, prints a masked database label, and never
+prints secret values. Timestamps display in `DEFAULT_TIMEZONE`, falling back to
+`Europe/Lisbon`. To inspect recent Telegram/API flow evidence and timing data
+manually, run:
 
 ```sql
 select

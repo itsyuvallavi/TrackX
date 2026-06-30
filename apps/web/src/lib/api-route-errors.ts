@@ -5,6 +5,8 @@ import {
   ApiNotFoundError,
   CategoryNotFoundError,
   ParserClientError,
+  ShortcutImportBadRequestError,
+  ShortcutImportUnauthorizedError,
 } from "@trackx/api-core";
 import { ApiUnauthorizedError } from "@/lib/api-route-auth";
 
@@ -27,7 +29,15 @@ export function toApiErrorResponse(error: unknown): NextResponse {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  if (error instanceof ShortcutImportBadRequestError) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
   if (error instanceof ApiUnauthorizedError) {
+    return NextResponse.json({ error: error.message }, { status: 401 });
+  }
+
+  if (error instanceof ShortcutImportUnauthorizedError) {
     return NextResponse.json({ error: error.message }, { status: 401 });
   }
 

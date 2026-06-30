@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   CurrencySchema,
   ParserRequestSchema,
+  TransactionSourceSchema,
   type ParserResponse,
 } from "@trackx/shared";
 import type { ParserClient } from "../clients/parser-client.js";
@@ -32,6 +33,7 @@ export const FromMessageSchema = z.object({
   timezone: z.string().min(1),
   defaultCurrency: CurrencySchema.optional(),
   correlationId: z.string().min(1).optional(),
+  source: TransactionSourceSchema.default("telegram"),
 });
 
 export type FromMessageInput = z.infer<typeof FromMessageSchema>;
@@ -174,6 +176,7 @@ export function createFromMessageService(
           userId,
           parsed,
           input.timezone,
+          input.source,
         );
         const dbWriteDurationMs = elapsedSince(dbWriteStartedAt);
 

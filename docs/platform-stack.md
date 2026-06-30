@@ -124,7 +124,8 @@ Current implementation uses server-side fetch through the web app:
 The web app uses Supabase directly only for Auth session cookies. Business data
 still flows through the API and Prisma.
 Operational Telegram/API traces are written to the API-only `message_events`
-table so Cloudflare and Vercel events can be joined by correlation ID.
+table so Cloudflare and Vercel events can be joined by correlation ID. Use
+`pnpm logs:live` to watch those events in one terminal stream.
 
 ### Keys
 
@@ -230,14 +231,14 @@ You → Telegram → Cloudflare Worker → Vercel API → parser/OpenAI → Supa
 
 Set with `wrangler secret put` or Cloudflare dashboard. Local dev uses `apps/webhook/.dev.vars` (from `.dev.vars.example`):
 
-| Variable                    | Purpose                                |
-| --------------------------- | -------------------------------------- |
-| `TELEGRAM_BOT_TOKEN`        | From BotFather                         |
-| `API_BASE_URL`              | Public Vercel API base URL             |
-| `TRACKX_API_SECRET`         | Shared Cloudflare-to-Vercel API secret |
-| `TELEGRAM_WEBHOOK_SECRET`   | Optional webhook verification          |
-| `DEFAULT_TIMEZONE`          | In `wrangler.toml` [vars]              |
-| `DEFAULT_CURRENCY`          | In `wrangler.toml` [vars]              |
+| Variable                  | Purpose                                |
+| ------------------------- | -------------------------------------- |
+| `TELEGRAM_BOT_TOKEN`      | From BotFather                         |
+| `API_BASE_URL`            | Public Vercel API base URL             |
+| `TRACKX_API_SECRET`       | Shared Cloudflare-to-Vercel API secret |
+| `TELEGRAM_WEBHOOK_SECRET` | Optional webhook verification          |
+| `DEFAULT_TIMEZONE`        | In `wrangler.toml` [vars]              |
+| `DEFAULT_CURRENCY`        | In `wrangler.toml` [vars]              |
 
 Setup details: [cloudflare-webhook.md](./cloudflare-webhook.md).
 

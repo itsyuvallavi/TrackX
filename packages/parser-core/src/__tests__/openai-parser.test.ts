@@ -14,10 +14,22 @@ function clientWithOutput(
   output: unknown,
   onInput?: (input: Record<string, unknown>) => void,
 ): OpenAiResponsesClient {
+  return clientWithOutputs([output], onInput);
+}
+
+function clientWithOutputs(
+  outputs: unknown[],
+  onInput?: (input: Record<string, unknown>) => void,
+): OpenAiResponsesClient {
+  let index = 0;
+
   return {
     responses: {
       async create(input) {
         onInput?.(input);
+        const output = outputs[Math.min(index, outputs.length - 1)];
+        index += 1;
+
         return { output_text: JSON.stringify(output) };
       },
     },
@@ -62,6 +74,63 @@ describe("parseTransactionWithOpenAi", () => {
     );
 
     expect(response.transactions[0]?.category).toBe("Transport");
+  });
+
+  it("overrides model category when a deterministic rule matches", async () => {
+    const response = await parseTransactionWithOpenAi(
+      { message: "0.10 euro test coffee", timezone: "Europe/Lisbon" },
+      config,
+      clientWithOutput({
+        confidence: 0.9,
+        transactions: [expense(0.1, "EUR", "Misc", "test coffee", null)],
+        needsClarification: false,
+        clarifyingQuestion: null,
+        parser: "openai",
+      }),
+    );
+
+    expect(response.transactions[0]).toMatchObject({
+      amount: 0.1,
+      category: "Restaurants / Cafes / Fun",
+      confidence: 0.9,
+    });
+  });
+
+  it("retries category-only clarifications when a deterministic rule matches", async () => {
+    const capturedInputs: Record<string, unknown>[] = [];
+    const response = await parseTransactionWithOpenAi(
+      { message: "0.10 euro test coffee", timezone: "Europe/Lisbon" },
+      config,
+      clientWithOutputs(
+        [
+          {
+            confidence: 0,
+            transactions: [],
+            needsClarification: true,
+            clarifyingQuestion:
+              "What category should this transaction be classified under?",
+            parser: "openai",
+          },
+          {
+            confidence: 0.9,
+            transactions: [expense(0.1, "EUR", "Misc", "test coffee", null)],
+            needsClarification: false,
+            clarifyingQuestion: null,
+            parser: "openai",
+          },
+        ],
+        (input) => capturedInputs.push(input),
+      ),
+    );
+
+    expect(capturedInputs).toHaveLength(2);
+    expect(JSON.stringify(capturedInputs[1])).toContain(
+      "Deterministic TrackX category rule matched this message",
+    );
+    expect(response.needsClarification).toBe(false);
+    expect(response.transactions[0]?.category).toBe(
+      "Restaurants / Cafes / Fun",
+    );
   });
 
   it("returns income for earned messages", async () => {
@@ -189,7 +258,7 @@ describe("parseTransactionWithOpenAi", () => {
 function expense(
   amount: number,
   currency: "EUR" | "USD" | "ILS",
-  category: "Restaurants / Cafes / Fun" | "Transport" | "Home",
+  category: "Restaurants / Cafes / Fun" | "Transport" | "Home" | "Misc",
   description: string,
   merchant: string | null,
 ) {

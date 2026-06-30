@@ -2,19 +2,26 @@
 import { CommandHeader } from "@/components/command-header";
 import { ResponsiveAppShell } from "@/components/responsive-app-shell";
 import { BudgetLabDemo } from "@/components/settings/budget-lab-demo";
+import { ShortcutImportPanel } from "@/components/settings/shortcut-import-panel";
 import { TelegramLinkPanel } from "@/components/settings/telegram-link-panel";
 import { ApiError } from "@/lib/api";
 import { requireAuthenticatedUser } from "@/lib/auth";
-import { loadBudgets, loadTelegramConnection } from "@/lib/server-page-data";
+import {
+  loadBudgets,
+  loadShortcutImportToken,
+  loadTelegramConnection,
+} from "@/lib/server-page-data";
 
 export default async function SettingsPage() {
   const user = await requireAuthenticatedUser();
 
   try {
-    const [budgets, telegramConnection] = await Promise.all([
-      loadBudgets(user.id),
-      loadTelegramConnection(user.id),
-    ]);
+    const [budgets, telegramConnection, shortcutImportToken] =
+      await Promise.all([
+        loadBudgets(user.id),
+        loadTelegramConnection(user.id),
+        loadShortcutImportToken(user.id),
+      ]);
 
     return (
       <ResponsiveAppShell currentPath="/settings">
@@ -27,6 +34,8 @@ export default async function SettingsPage() {
           <BudgetLabDemo initialBudgets={budgets} />
 
           <TelegramLinkPanel initialConnection={telegramConnection} />
+
+          <ShortcutImportPanel initialStatus={shortcutImportToken} />
         </main>
       </ResponsiveAppShell>
     );

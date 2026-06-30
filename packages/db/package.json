@@ -17,6 +17,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "generate": "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/trackx DIRECT_URL=postgresql://postgres:postgres@localhost:5432/trackx prisma generate",
     "lint": "tsc -p tsconfig.json --noEmit",
+    "logs:live": "tsx src/tail-message-events.ts",
     "prisma": "prisma",
     "prisma:local": "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/trackx DIRECT_URL=postgresql://postgres:postgres@localhost:5432/trackx prisma",
     "test": "pnpm --filter @trackx/shared build && vitest run",

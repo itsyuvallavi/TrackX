@@ -1,5 +1,5 @@
 // Owner: packages/api-core. Persists parser transactions from message flows.
-import type { ParserResponse } from "@trackx/shared";
+import type { ParserResponse, TransactionSource } from "@trackx/shared";
 import type { TransactionRecord } from "../repositories/transactions.js";
 import type { TransactionService } from "./transaction-service.js";
 
@@ -9,6 +9,7 @@ export async function createTransactionsFromParsed(
   userId: string,
   parsed: ParserResponse,
   timezone: string,
+  source: TransactionSource = "telegram",
 ): Promise<TransactionRecord[]> {
   const created: TransactionRecord[] = [];
   const transactionDate = localDay(new Date(), timezone);
@@ -23,7 +24,7 @@ export async function createTransactionsFromParsed(
         category: transaction.category,
         description: transaction.description,
         merchant: transaction.merchant ?? null,
-        source: "telegram",
+        source,
         rawMessage,
         transactionDate,
       }),

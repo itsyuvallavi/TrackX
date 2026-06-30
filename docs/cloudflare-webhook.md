@@ -117,7 +117,16 @@ If Telegram reports `401 Unauthorized`, search for
 `telegram_webhook_unauthorized` first and verify the Telegram webhook secret
 token matches Cloudflare `TELEGRAM_WEBHOOK_SECRET`.
 
-Use Supabase Table Editor or SQL Editor:
+For one live terminal stream across Telegram, Cloudflare Worker, Vercel API,
+parser, database write, and reply events, run:
+
+```sh
+pnpm logs:live
+```
+
+Use `pnpm logs:live -- --once --limit 20` for a one-shot snapshot. Timestamps
+display in `DEFAULT_TIMEZONE`, falling back to `Europe/Lisbon`. For manual
+inspection, use Supabase Table Editor or SQL Editor:
 
 ```sql
 select
@@ -150,14 +159,14 @@ You do not need both in production. Pick one receiver for Telegram.
 
 ## Environment variables
 
-| Variable                    | Purpose                                        |
-| --------------------------- | ---------------------------------------------- |
-| `TELEGRAM_BOT_TOKEN`        | Bot token from BotFather                       |
-| `API_BASE_URL`              | Public or tunneled TrackX API base URL         |
-| `TRACKX_API_SECRET`         | Shared secret for Cloudflare-to-Vercel API     |
-| `DEFAULT_TIMEZONE`          | Default timezone for parsing                   |
-| `DEFAULT_CURRENCY`          | Default currency for parsing                   |
-| `TELEGRAM_WEBHOOK_SECRET`   | Optional shared secret validated from Telegram |
+| Variable                  | Purpose                                        |
+| ------------------------- | ---------------------------------------------- |
+| `TELEGRAM_BOT_TOKEN`      | Bot token from BotFather                       |
+| `API_BASE_URL`            | Public or tunneled TrackX API base URL         |
+| `TRACKX_API_SECRET`       | Shared secret for Cloudflare-to-Vercel API     |
+| `DEFAULT_TIMEZONE`        | Default timezone for parsing                   |
+| `DEFAULT_CURRENCY`        | Default currency for parsing                   |
+| `TELEGRAM_WEBHOOK_SECRET` | Optional shared secret validated from Telegram |
 
 ## Health check
 

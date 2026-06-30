@@ -13,15 +13,18 @@ import {
   createPrismaMessageEventRepository,
   createPrismaParseEventRepository,
   createPrismaPendingClarificationRepository,
+  createPrismaShortcutImportTokenRepository,
   createPrismaTelegramLinkCodeRepository,
   createPrismaTransactionRepository,
   createPrismaUserRepository,
+  createShortcutImportService,
   createTelegramLinkService,
   createTransactionService,
   type BudgetService,
   type FromMessageService,
   type MessageEventService,
   type ParserClient,
+  type ShortcutImportService,
   type TelegramLinkService,
   ParserClientError,
   type TransactionService,
@@ -34,6 +37,7 @@ type ApiRouteServices = {
   budgetService: BudgetService;
   fromMessageService: FromMessageService;
   messageEventService: MessageEventService;
+  shortcutImportService: ShortcutImportService;
   telegramLinkService: TelegramLinkService;
   transactionService: TransactionService;
   userRepository: UserRepository;
@@ -52,6 +56,10 @@ export function getFromMessageService(): FromMessageService {
 
 export function getMessageEventService(): MessageEventService {
   return getServices().messageEventService;
+}
+
+export function getShortcutImportService(): ShortcutImportService {
+  return getServices().shortcutImportService;
 }
 
 export function getTransactionService(): TransactionService {
@@ -101,6 +109,18 @@ function getServices(): ApiRouteServices {
       messageEventService,
     ),
     messageEventService,
+    shortcutImportService: createShortcutImportService(
+      createPrismaShortcutImportTokenRepository(client),
+      createFromMessageService(
+        getParserClient(),
+        createPrismaParseEventRepository(client),
+        createPrismaPendingClarificationRepository(client),
+        transactionService,
+        createMessageIntentService(getIntentClient(), transactionService),
+        createBudgetAlertService(budgetService),
+        messageEventService,
+      ),
+    ),
     telegramLinkService: createTelegramLinkService(
       createPrismaTelegramLinkCodeRepository(client),
     ),
