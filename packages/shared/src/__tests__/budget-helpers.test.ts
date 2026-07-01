@@ -75,4 +75,15 @@ describe("getPeriodWindow", () => {
     expect(window.start.toISOString()).toBe("2026-06-01T00:00:00.000Z");
     expect(window.end.toISOString()).toBe("2026-07-01T00:00:00.000Z");
   });
+
+  it("trims hidden whitespace from valid timezone names", () => {
+    const window = getPeriodWindow(
+      new Date("2026-06-16T12:00:00.000Z"),
+      "week",
+      "Europe/Lisbon\n",
+    );
+
+    expect(window.start.toISOString()).toBe("2026-06-15T00:00:00.000Z");
+    expect(window.end.toISOString()).toBe("2026-06-22T00:00:00.000Z");
+  });
 });

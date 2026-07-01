@@ -83,6 +83,32 @@ describe("createShortcutImportService", () => {
     expect(tokens.records[0]?.lastUsedAt).toBeInstanceOf(Date);
   });
 
+  it("trims shortcut timezone values before forwarding", async () => {
+    const tokens = inMemoryTokenRepository();
+    const fromMessage = fromMessageService();
+    const service = createShortcutImportService(tokens, fromMessage);
+    const { token } = await service.createToken({ userId });
+
+    await service.importAppleWallet({
+      authorization: `Bearer ${token}`,
+      payload: {
+        merchant: "Panda Cantina",
+        amount: "€13.00",
+        timezone: "Europe/Lisbon\n",
+      },
+      correlationId: "trace-2b",
+      defaultTimezone: "Europe/Lisbon",
+      defaultCurrency: "EUR",
+    });
+
+    expect(fromMessage.createFromMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "13 eur for Panda Cantina",
+        timezone: "Europe/Lisbon",
+      }),
+    );
+  });
+
   it("requires merchant and amount fields", async () => {
     const tokens = inMemoryTokenRepository();
     const service = createShortcutImportService(tokens, fromMessageService());

@@ -20,7 +20,7 @@ export const RecentTransactionContextSchema = z.object({
 
 export const TransactionIntentRequestSchema = z.object({
   message: z.string().min(1),
-  timezone: z.string().min(1),
+  timezone: z.string().trim().min(1),
   defaultCurrency: CurrencySchema.optional(),
   recentTransactions: z.array(RecentTransactionContextSchema).max(10),
 });

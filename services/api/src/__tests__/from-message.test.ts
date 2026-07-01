@@ -40,6 +40,31 @@ describe("from-message route", () => {
     expect(harness.parseEvents[0]?.status).toBe("success");
   });
 
+  it("accepts timezone values with hidden whitespace", async () => {
+    const harness = await createHarness(foodResponse());
+
+    const response = await harness.server.inject({
+      method: "POST",
+      url: "/transactions/from-message",
+      payload: {
+        message: "spent 15 eur on food",
+        timezone: "Europe/Lisbon\n",
+        defaultCurrency: "EUR",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().transactions).toMatchObject([
+      {
+        amount: 15,
+        currency: "EUR",
+        category: "Restaurants / Cafes / Fun",
+      },
+    ]);
+    expect(harness.records).toHaveLength(1);
+    expect(harness.parseEvents[0]?.status).toBe("success");
+  });
+
   it("adds budget warnings to successful transaction feedback", async () => {
     const harness = await createHarness(foodResponse(), {
       budgetWarnings: ["Heads up: Food & fun 39/50 EUR used."],

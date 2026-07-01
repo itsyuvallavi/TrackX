@@ -7,7 +7,7 @@ import { TransactionTypeSchema } from "./transaction-schemas.js";
 export const ParserRequestSchema = z.object({
   message: z.string().min(1),
   defaultCurrency: CurrencySchema.optional(),
-  timezone: z.string().min(1),
+  timezone: z.string().trim().min(1),
 });
 
 export const ParsedTransactionSchema = z.object({

@@ -30,7 +30,7 @@ export const FromMessageSchema = z.object({
   message: z.string().min(1),
   userId: z.string().uuid().optional(),
   telegramUserId: z.string().min(1).optional(),
-  timezone: z.string().min(1),
+  timezone: z.string().trim().min(1),
   defaultCurrency: CurrencySchema.optional(),
   correlationId: z.string().min(1).optional(),
   source: TransactionSourceSchema.default("telegram"),

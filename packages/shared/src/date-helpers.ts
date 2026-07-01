@@ -6,21 +6,32 @@ export type PeriodWindow = {
   end: Date;
 };
 
+export function normalizeTimezone(timezone: string): string {
+  const normalized = timezone.trim();
+
+  new Intl.DateTimeFormat("en-US", { timeZone: normalized }).format(
+    new Date(0),
+  );
+
+  return normalized;
+}
+
 export function getPeriodWindow(
   date: Date,
   period: BudgetPeriod,
   timezone: string,
 ): PeriodWindow {
-  const local = getLocalDateParts(date, timezone);
+  const normalizedTimezone = normalizeTimezone(timezone);
+  const local = getLocalDateParts(date, normalizedTimezone);
 
   if (period === "month") {
     return {
-      start: zonedDateToUtc(local.year, local.month, 1, timezone),
+      start: zonedDateToUtc(local.year, local.month, 1, normalizedTimezone),
       end: zonedDateToUtc(
         local.month === 12 ? local.year + 1 : local.year,
         local.month === 12 ? 1 : local.month + 1,
         1,
-        timezone,
+        normalizedTimezone,
       ),
     };
   }
@@ -37,15 +48,24 @@ export function getPeriodWindow(
       monday.getUTCFullYear(),
       monday.getUTCMonth() + 1,
       monday.getUTCDate(),
-      timezone,
+      normalizedTimezone,
     ),
     end: zonedDateToUtc(
       monday.getUTCFullYear(),
       monday.getUTCMonth() + 1,
       monday.getUTCDate() + 7,
-      timezone,
+      normalizedTimezone,
     ),
   };
+}
+
+export function getLocalDateString(date: Date, timezone: string): string {
+  const parts = getLocalDateParts(date, normalizeTimezone(timezone));
+  const year = String(parts.year);
+  const month = String(parts.month).padStart(2, "0");
+  const day = String(parts.day).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function getLocalDateParts(

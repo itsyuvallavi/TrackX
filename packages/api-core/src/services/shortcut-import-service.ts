@@ -1,7 +1,11 @@
 // Owner: packages/api-core. iOS Shortcut import orchestration.
 import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
-import { normalizeCurrency, type Currency } from "@trackx/shared";
+import {
+  normalizeCurrency,
+  normalizeTimezone,
+  type Currency,
+} from "@trackx/shared";
 import type {
   ShortcutImportTokenRecord,
   ShortcutImportTokenRepository,
@@ -31,8 +35,8 @@ export const AppleWalletImportSchema = z.object({
   amount: z.unknown(),
   card: z.unknown().optional(),
   name: z.unknown().optional(),
-  currency: z.string().optional(),
-  timezone: z.string().optional(),
+  currency: z.string().trim().optional(),
+  timezone: z.string().trim().optional(),
   transactionDate: z.string().date().optional(),
 });
 
@@ -91,7 +95,9 @@ export function createShortcutImportService(
       const response = await fromMessage.createFromMessage({
         userId: tokenRecord.userId,
         message: normalized.message,
-        timezone: input.payload.timezone ?? input.defaultTimezone,
+        timezone: normalizeTimezone(
+          input.payload.timezone ?? input.defaultTimezone,
+        ),
         defaultCurrency: normalized.currency,
         correlationId: input.correlationId,
         source: "import",

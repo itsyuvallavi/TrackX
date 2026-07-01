@@ -2,6 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { after, NextResponse } from "next/server";
 import { AppleWalletImportSchema } from "@trackx/api-core";
+import { normalizeTimezone } from "@trackx/shared";
 import { readJsonBody, toApiErrorResponse } from "@/lib/api-route-errors";
 import {
   getMessageEventService,
@@ -27,7 +28,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       authorization: request.headers.get("authorization"),
       payload,
       correlationId,
-      defaultTimezone: process.env.DEFAULT_TIMEZONE ?? "Europe/Lisbon",
+      defaultTimezone: normalizeTimezone(
+        process.env.DEFAULT_TIMEZONE ?? "Europe/Lisbon",
+      ),
       defaultCurrency: "EUR",
     });
 
