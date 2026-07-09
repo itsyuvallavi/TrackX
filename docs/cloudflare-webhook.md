@@ -88,6 +88,8 @@ wrangler secret put TELEGRAM_BOT_TOKEN
 wrangler secret put API_BASE_URL
 wrangler secret put TRACKX_API_SECRET
 wrangler secret put TELEGRAM_WEBHOOK_SECRET
+wrangler secret put BETTER_STACK_SOURCE_TOKEN
+wrangler secret put BETTER_STACK_INGESTING_HOST
 ```
 
 Point `API_BASE_URL` at your public API host. In production it should be the
@@ -112,6 +114,12 @@ object, including fields such as `elapsedMs`, `parserDurationMs`,
 `dbWriteDurationMs`, `replySendDurationMs`, `telegramSentAt`, and
 `telegramToWebhookMs`. Worker-side event writes use Cloudflare `waitUntil` so
 logging does not block the Telegram reply path in production.
+
+The Vercel API persists each event to Supabase and, when configured, exports a
+best-effort copy to Better Stack. If the Worker's protected Vercel event write
+fails, the Worker sends that event directly to Better Stack with
+`delivery=cloudflare_direct_fallback`. It does not send directly during the
+normal path, so hosted events are not duplicated.
 
 If Telegram reports `401 Unauthorized`, search for
 `telegram_webhook_unauthorized` first and verify the Telegram webhook secret
@@ -167,6 +175,8 @@ You do not need both in production. Pick one receiver for Telegram.
 | `DEFAULT_TIMEZONE`        | Default timezone for parsing                   |
 | `DEFAULT_CURRENCY`        | Default currency for parsing                   |
 | `TELEGRAM_WEBHOOK_SECRET` | Optional shared secret validated from Telegram |
+| `BETTER_STACK_SOURCE_TOKEN` | Optional Better Stack telemetry source token |
+| `BETTER_STACK_INGESTING_HOST` | Optional Better Stack telemetry ingest host |
 
 ## Health check
 

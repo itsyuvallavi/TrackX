@@ -502,6 +502,8 @@ Variables used by TrackX services and tooling:
 | `API_PORT`                  | API service port                                   |
 | `API_BASE_URL`              | API service base URL                               |
 | `TRACKX_API_SECRET`         | Shared Cloudflare-to-Vercel API secret             |
+| `BETTER_STACK_SOURCE_TOKEN` | Optional Better Stack telemetry source token       |
+| `BETTER_STACK_INGESTING_HOST` | Optional Better Stack telemetry ingest host      |
 | `TELEGRAM_BOT_TOKEN`        | Telegram bot token                                 |
 | `TELEGRAM_ALLOWED_USER_IDS` | Local polling bot allowlist of Telegram user IDs   |
 | `BOT_PORT`                  | Bot service port                                   |
@@ -518,7 +520,7 @@ App-specific variables read outside `@trackx/config`:
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key for dashboard auth sessions |
 | `WORKER_ENABLE_SCHEDULES`              | Enable BullMQ cron schedules (`true` / `false`)           |
 
-Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELEGRAM_BOT_TOKEN`, `API_BASE_URL`, `TRACKX_API_SECRET`, optional `TELEGRAM_WEBHOOK_SECRET`). See [docs/cloudflare-webhook.md](./docs/cloudflare-webhook.md).
+Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELEGRAM_BOT_TOKEN`, `API_BASE_URL`, `TRACKX_API_SECRET`, optional `TELEGRAM_WEBHOOK_SECRET`, and optional Better Stack telemetry variables). See [docs/cloudflare-webhook.md](./docs/cloudflare-webhook.md).
 
 Telegram access is account-owned. Settings can generate short-lived one-time codes stored in the `telegram_link_codes` table, and the Cloudflare webhook can consume them with `/link CODE`. Production writes require the linked Telegram ID and the existing webhook-to-Vercel `TRACKX_API_SECRET`.
 
@@ -537,6 +539,11 @@ pnpm logs:live -- --limit 10 --interval 1000
 pnpm logs:live -- --once --limit 20
 pnpm logs:live -- --timezone Europe/Lisbon
 ```
+
+When `BETTER_STACK_SOURCE_TOKEN` and `BETTER_STACK_INGESTING_HOST` are set,
+the same structured lifecycle events are also exported to Better Stack for a
+hosted live tail. Supabase remains the durable audit source; Better Stack is a
+best-effort observability copy joined by the same `correlationId`.
 
 The command reads `DATABASE_URL`, prints a masked database label, and never
 prints secret values. Timestamps display in `DEFAULT_TIMEZONE`, falling back to

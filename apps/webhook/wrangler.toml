@@ -11,5 +11,7 @@ DEFAULT_CURRENCY = "EUR"
 #   wrangler secret put TELEGRAM_BOT_TOKEN
 #   wrangler secret put API_BASE_URL
 #   wrangler secret put TRACKX_API_SECRET
+#   wrangler secret put BETTER_STACK_SOURCE_TOKEN
+#   wrangler secret put BETTER_STACK_INGESTING_HOST
 # Optional:
 #   wrangler secret put TELEGRAM_WEBHOOK_SECRET

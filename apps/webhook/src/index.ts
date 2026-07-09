@@ -1,5 +1,6 @@
 // Owner: apps/webhook. Cloudflare Worker entrypoint for Telegram webhooks.
 import { createTrackxApiClient } from "./api-client.js";
+import { sendBetterStackLog } from "@trackx/shared";
 import { parseAllowedUserIds, type WebhookEnv } from "./env.js";
 import { handleIncomingMessage, type IncomingMessage } from "./handlers.js";
 import {
@@ -29,7 +30,7 @@ export default {
     }
 
     if (!isWebhookAuthorized(request, env)) {
-      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, {
+      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, env, {
         correlationId,
         eventType: "telegram_webhook_unauthorized",
         status: "failed",
@@ -49,7 +50,7 @@ export default {
       const { chatId, userId, messageId, messageDate, text } =
         readTelegramUpdate(body);
 
-      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, {
+      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, env, {
         correlationId,
         eventType: "telegram_update_received",
         telegramUserId: userId,
@@ -63,7 +64,7 @@ export default {
       }));
 
       if (chatId === undefined) {
-        await scheduleWebhookEvent(ctx, recordWebhookEvent(api, {
+        await scheduleWebhookEvent(ctx, recordWebhookEvent(api, env, {
           correlationId,
           eventType: "telegram_update_ignored",
           status: "ignored",
@@ -103,7 +104,7 @@ export default {
 
       const replyStartedAt = Date.now();
       await sendTelegramMessage(env, chatId, reply);
-      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, {
+      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, env, {
         correlationId,
         eventType: "telegram_reply_sent",
         telegramUserId: userId,
@@ -117,7 +118,7 @@ export default {
       }));
       return new Response("ok", { status: 200 });
     } catch (error) {
-      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, {
+      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, env, {
         correlationId,
         eventType: "telegram_webhook_failed",
         status: "failed",
@@ -147,6 +148,7 @@ type WebhookEventInput = {
 
 async function recordWebhookEvent(
   api: ReturnType<typeof createTrackxApiClient>,
+  env: WebhookEnv,
   input: WebhookEventInput,
 ): Promise<void> {
   try {
@@ -168,8 +170,55 @@ async function recordWebhookEvent(
       errorMessage: input.errorMessage,
     });
   } catch (error) {
+    await recordBetterStackFallback(env, input, error);
     console.error(
       "[webhook] Failed to record system event:",
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
+
+async function recordBetterStackFallback(
+  env: WebhookEnv,
+  input: WebhookEventInput,
+  systemEventError: unknown,
+): Promise<void> {
+  try {
+    await sendBetterStackLog(
+      {
+        sourceToken: env.BETTER_STACK_SOURCE_TOKEN,
+        ingestingHost: env.BETTER_STACK_INGESTING_HOST,
+      },
+      {
+        message: input.eventType,
+        service: "cloudflare",
+        correlationId: input.correlationId,
+        eventType: input.eventType,
+        status: input.status ?? "ok",
+        telegramUserId:
+          input.telegramUserId === undefined
+            ? undefined
+            : String(input.telegramUserId),
+        telegramMessageId:
+          input.telegramMessageId === undefined
+            ? undefined
+            : String(input.telegramMessageId),
+        rawMessagePreview: preview(input.rawMessagePreview),
+        errorMessage: input.errorMessage,
+        metadata: {
+          ...input.metadata,
+          delivery: "cloudflare_direct_fallback",
+          systemEventError:
+            systemEventError instanceof Error
+              ? systemEventError.message
+              : String(systemEventError),
+        },
+        environment: "production",
+      },
+    );
+  } catch (error) {
+    console.error(
+      "[webhook] Failed to export fallback event:",
       error instanceof Error ? error.message : error,
     );
   }

@@ -65,6 +65,48 @@ describe("createMessageEventService", () => {
 
     consoleSpy.mockRestore();
   });
+
+  it("exports the same compact event to an optional observer", async () => {
+    const created: CreateMessageEventInput[] = [];
+    const observed: CreateMessageEventInput[] = [];
+    const service = createMessageEventService(fakeRepository(created), {
+      async record(input) {
+        observed.push(input);
+      },
+    });
+
+    await service.record({
+      correlationId: "trace-3",
+      source: "api",
+      eventType: "transactions_created",
+      rawMessage: " spent   15 eur on food ",
+    });
+
+    expect(observed).toEqual(created);
+  });
+
+  it("does not throw when external event export fails", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const service = createMessageEventService(fakeRepository([]), {
+      async record() {
+        throw new Error("telemetry unavailable");
+      },
+    });
+
+    await expect(
+      service.record({
+        correlationId: "trace-4",
+        source: "api",
+        eventType: "parser_started",
+      }),
+    ).resolves.toBeUndefined();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "[message-events] failed to export event:",
+      "telemetry unavailable",
+    );
+
+    consoleSpy.mockRestore();
+  });
 });
 
 function fakeRepository(

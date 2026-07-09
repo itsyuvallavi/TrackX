@@ -7,6 +7,8 @@ export type WebhookEnv = {
   DEFAULT_TIMEZONE: string;
   DEFAULT_CURRENCY: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
+  BETTER_STACK_SOURCE_TOKEN?: string;
+  BETTER_STACK_INGESTING_HOST?: string;
 };
 
 export function parseAllowedUserIds(value: string): string[] {

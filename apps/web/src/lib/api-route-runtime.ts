@@ -32,6 +32,7 @@ import {
 } from "@trackx/api-core";
 import { createPrismaClient, type PrismaClient } from "@trackx/db";
 import { createOpenAiParser } from "@trackx/parser-core";
+import { sendBetterStackLog } from "@trackx/shared";
 
 type ApiRouteServices = {
   budgetService: BudgetService;
@@ -95,6 +96,30 @@ function getServices(): ApiRouteServices {
   );
   const messageEventService = createMessageEventService(
     createPrismaMessageEventRepository(client),
+    {
+      async record(event) {
+        await sendBetterStackLog(
+          {
+            sourceToken: process.env.BETTER_STACK_SOURCE_TOKEN,
+            ingestingHost: process.env.BETTER_STACK_INGESTING_HOST,
+          },
+          {
+            message: event.eventType,
+            service: event.source,
+            correlationId: event.correlationId,
+            eventType: event.eventType,
+            status: event.status,
+            userId: event.userId,
+            telegramUserId: event.telegramUserId,
+            telegramMessageId: event.telegramMessageId,
+            rawMessagePreview: event.rawMessagePreview,
+            errorMessage: event.errorMessage,
+            metadata: event.metadata,
+            environment: process.env.VERCEL_ENV ?? "local",
+          },
+        );
+      },
+    },
   );
 
   services = {

@@ -26,8 +26,13 @@ export type MessageEventService = {
   record(input: RecordMessageEventInput): Promise<void>;
 };
 
+export type MessageEventObserver = {
+  record(input: CreateMessageEventInput): Promise<void>;
+};
+
 export function createMessageEventService(
   repository: MessageEventRepository,
+  observer?: MessageEventObserver,
 ): MessageEventService {
   return {
     async record(input) {
@@ -35,12 +40,23 @@ export function createMessageEventService(
         return;
       }
 
-      try {
-        await repository.create(toCreateInput(input));
-      } catch (error) {
+      const event = toCreateInput(input);
+      const [persistence, observation] = await Promise.allSettled([
+        repository.create(event),
+        observer?.record(event) ?? Promise.resolve(),
+      ]);
+
+      if (persistence.status === "rejected") {
         console.error(
           "[message-events] failed to record event:",
-          error instanceof Error ? error.message : error,
+          errorMessage(persistence.reason),
+        );
+      }
+
+      if (observation.status === "rejected") {
+        console.error(
+          "[message-events] failed to export event:",
+          errorMessage(observation.reason),
         );
       }
     },

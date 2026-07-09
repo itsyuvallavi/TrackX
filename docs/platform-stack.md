@@ -127,6 +127,13 @@ Operational Telegram/API traces are written to the API-only `message_events`
 table so Cloudflare and Vercel events can be joined by correlation ID. Use
 `pnpm logs:live` to watch those events in one terminal stream.
 
+If `BETTER_STACK_SOURCE_TOKEN` and `BETTER_STACK_INGESTING_HOST` are present,
+Vercel also exports the same structured events to Better Stack. Supabase stays
+the durable audit source. Better Stack delivery is best effort and cannot make
+an expense, reply, or database write fail. The Cloudflare Worker sends a direct
+fallback event only when its protected Vercel event write fails, avoiding
+duplicate hosted logs during the normal path.
+
 ### Keys
 
 | Variable                               | Where                                                                      |
@@ -135,6 +142,8 @@ table so Cloudflare and Vercel events can be joined by correlation ID. Use
 | `NEXT_PUBLIC_SITE_URL`                 | Public app URL used by Supabase email redirects                            |
 | `NEXT_PUBLIC_SUPABASE_URL`             | Supabase project URL for Auth                                              |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key for Auth sessions                            |
+| `BETTER_STACK_SOURCE_TOKEN`            | Server-only Better Stack telemetry source token                            |
+| `BETTER_STACK_INGESTING_HOST`          | Server-only Better Stack telemetry ingest host                             |
 
 ---
 
@@ -237,6 +246,8 @@ Set with `wrangler secret put` or Cloudflare dashboard. Local dev uses `apps/web
 | `API_BASE_URL`            | Public Vercel API base URL             |
 | `TRACKX_API_SECRET`       | Shared Cloudflare-to-Vercel API secret |
 | `TELEGRAM_WEBHOOK_SECRET` | Optional webhook verification          |
+| `BETTER_STACK_SOURCE_TOKEN` | Optional Better Stack source token   |
+| `BETTER_STACK_INGESTING_HOST` | Optional Better Stack ingest host  |
 | `DEFAULT_TIMEZONE`        | In `wrangler.toml` [vars]              |
 | `DEFAULT_CURRENCY`        | In `wrangler.toml` [vars]              |
 
