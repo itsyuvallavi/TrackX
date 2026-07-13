@@ -109,6 +109,32 @@ describe("createShortcutImportService", () => {
     );
   });
 
+  it("forwards valid Wallet category values as parser overrides", async () => {
+    const tokens = inMemoryTokenRepository();
+    const fromMessage = fromMessageService();
+    const service = createShortcutImportService(tokens, fromMessage);
+    const { token } = await service.createToken({ userId });
+
+    await service.importAppleWallet({
+      authorization: `Bearer ${token}`,
+      payload: {
+        merchant: "Melbourne Elouera",
+        amount: "€3.00",
+        category: "Food & Drink",
+      },
+      correlationId: "trace-2c",
+      defaultTimezone: "Europe/Lisbon",
+      defaultCurrency: "EUR",
+    });
+
+    expect(fromMessage.createFromMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "3 eur for Melbourne Elouera",
+        categoryOverride: "Restaurants / Cafes / Fun",
+      }),
+    );
+  });
+
   it("requires merchant and amount fields", async () => {
     const tokens = inMemoryTokenRepository();
     const service = createShortcutImportService(tokens, fromMessageService());

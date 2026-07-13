@@ -18,44 +18,72 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     const payload = AppleWalletImportSchema.parse(await readJsonBody(request));
+    const authorization = request.headers.get("authorization");
     rawMessage = previewPayload(payload);
-    scheduleImportEvent(correlationId, "apple_wallet_import_received", {
+
+    await recordImportEvent(correlationId, "apple_wallet_import_received", {
       rawMessage,
       metadata: { elapsedMs: elapsedSince(startedAt) },
     });
 
-    const response = await getShortcutImportService().importAppleWallet({
-      authorization: request.headers.get("authorization"),
-      payload,
-      correlationId,
-      defaultTimezone: normalizeTimezone(
-        process.env.DEFAULT_TIMEZONE ?? "Europe/Lisbon",
-      ),
-      defaultCurrency: "EUR",
+    after(async () => {
+      const backgroundStartedAt = Date.now();
+
+      try {
+        const response = await getShortcutImportService().importAppleWallet({
+          authorization,
+          payload,
+          correlationId,
+          defaultTimezone: normalizeTimezone(
+            process.env.DEFAULT_TIMEZONE ?? "Europe/Lisbon",
+          ),
+          defaultCurrency: "EUR",
+        });
+
+        await recordImportEvent(
+          correlationId,
+          "apple_wallet_import_completed",
+          {
+            rawMessage,
+            metadata: {
+              elapsedMs: elapsedSince(startedAt),
+              backgroundElapsedMs: elapsedSince(backgroundStartedAt),
+              transactionCount: response.transactions.length,
+            },
+          },
+        );
+      } catch (error) {
+        await recordImportEvent(correlationId, "apple_wallet_import_failed", {
+          status: "failed",
+          rawMessage,
+          metadata: {
+            elapsedMs: elapsedSince(startedAt),
+            backgroundElapsedMs: elapsedSince(backgroundStartedAt),
+          },
+          error,
+        });
+      }
     });
 
-    scheduleImportEvent(correlationId, "apple_wallet_import_completed", {
-      rawMessage,
-      metadata: {
-        elapsedMs: elapsedSince(startedAt),
-        transactionCount: response.transactions.length,
-      },
-    });
-
-    return NextResponse.json(response, { status: 201 });
+    return NextResponse.json(
+      { accepted: true, correlationId },
+      { status: 202 },
+    );
   } catch (error) {
-    scheduleImportEvent(correlationId, "apple_wallet_import_failed", {
-      status: "failed",
-      rawMessage,
-      metadata: { elapsedMs: elapsedSince(startedAt) },
-      error,
-    });
+    after(() =>
+      recordImportEvent(correlationId, "apple_wallet_import_failed", {
+        status: "failed",
+        rawMessage,
+        metadata: { elapsedMs: elapsedSince(startedAt) },
+        error,
+      }),
+    );
 
     return toApiErrorResponse(error);
   }
 }
 
-function scheduleImportEvent(
+async function recordImportEvent(
   correlationId: string,
   eventType: string,
   extra: {
@@ -64,18 +92,16 @@ function scheduleImportEvent(
     metadata?: Record<string, unknown>;
     error?: unknown;
   },
-): void {
-  after(() =>
-    getMessageEventService().record({
-      correlationId,
-      source: "api",
-      eventType,
-      status: extra.status,
-      ...(extra.rawMessage ? { rawMessage: extra.rawMessage } : {}),
-      metadata: extra.metadata,
-      error: extra.error,
-    }),
-  );
+): Promise<void> {
+  await getMessageEventService().record({
+    correlationId,
+    source: "api",
+    eventType,
+    status: extra.status,
+    ...(extra.rawMessage ? { rawMessage: extra.rawMessage } : {}),
+    metadata: extra.metadata,
+    error: extra.error,
+  });
 }
 
 function previewPayload(payload: {

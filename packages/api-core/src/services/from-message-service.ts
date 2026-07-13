@@ -1,19 +1,13 @@
 // Owner: packages/api-core. Natural-language message to stored transaction flow.
-import { z } from "zod";
-import {
-  CurrencySchema,
-  ParserRequestSchema,
-  TransactionSourceSchema,
-  type ParserResponse,
-} from "@trackx/shared";
+import { ParserRequestSchema } from "@trackx/shared";
 import type { ParserClient } from "../clients/parser-client.js";
+import type { MerchantCategoryRuleRepository } from "../repositories/merchant-category-rules.js";
 import type { ParseEventRepository } from "../repositories/parse-events.js";
 import type {
   PendingClarificationRecord,
   PendingClarificationRepository,
   PendingClarificationScope,
 } from "../repositories/pending-clarifications.js";
-import type { TransactionRecord } from "../repositories/transactions.js";
 import type { MessageIntentService } from "./message-intent-service.js";
 import type { MessageEventService } from "./message-event-service.js";
 import type { TransactionService } from "./transaction-service.js";
@@ -22,29 +16,16 @@ import {
   clarificationFeedback,
   successFeedback,
 } from "./from-message-feedback.js";
+import { applyCategoryOverride } from "./from-message-category-override.js";
+import { compactMetadata, elapsedSince } from "./from-message-telemetry.js";
+import type {
+  FromMessageInput,
+  FromMessageResponse,
+} from "./from-message-schema.js";
 import { createTransactionsFromParsed } from "./from-message-transactions.js";
+import { applyMerchantCategoryRules } from "./merchant-category-rule-service.js";
 
 const CLARIFICATION_TTL_MS = 30 * 60 * 1000;
-
-export const FromMessageSchema = z.object({
-  message: z.string().min(1),
-  userId: z.string().uuid().optional(),
-  telegramUserId: z.string().min(1).optional(),
-  timezone: z.string().trim().min(1),
-  defaultCurrency: CurrencySchema.optional(),
-  correlationId: z.string().min(1).optional(),
-  source: TransactionSourceSchema.default("telegram"),
-});
-
-export type FromMessageInput = z.infer<typeof FromMessageSchema>;
-
-export type FromMessageResponse = {
-  transactions: TransactionRecord[];
-  needsClarification: boolean;
-  clarifyingQuestion: string | null;
-  feedback: string;
-  parser: ParserResponse["parser"] | null;
-};
 
 export type FromMessageService = {
   createFromMessage(input: FromMessageInput): Promise<FromMessageResponse>;
@@ -58,6 +39,7 @@ export function createFromMessageService(
   messageIntents?: MessageIntentService,
   budgetAlerts?: BudgetAlertService,
   messageEvents?: MessageEventService,
+  merchantCategoryRules?: MerchantCategoryRuleRepository,
 ): FromMessageService {
   return {
     async createFromMessage(input) {
@@ -125,7 +107,18 @@ export function createFromMessageService(
 
       try {
         const parserStartedAt = Date.now();
-        const parsed = await parser.parseTransaction(parserRequest);
+        const hintedParsed = applyCategoryOverride(
+          await parser.parseTransaction(parserRequest),
+          input.categoryOverride,
+        );
+        const merchantRuleResult = await applyMerchantCategoryRules(
+          hintedParsed,
+          {
+            userId,
+            rules: merchantCategoryRules,
+          },
+        );
+        const parsed = merchantRuleResult.parsed;
         const parserDurationMs = elapsedSince(parserStartedAt);
 
         if (parsed.needsClarification) {
@@ -200,7 +193,7 @@ export function createFromMessageService(
           userId,
           telegramUserId: input.telegramUserId,
           rawMessage: rawMessage,
-          metadata: {
+          metadata: compactMetadata({
             elapsedMs: elapsedSince(flowStartedAt),
             parser: parsed.parser,
             parserDurationMs,
@@ -208,7 +201,18 @@ export function createFromMessageService(
             cleanupDurationMs,
             feedbackDurationMs,
             transactionCount: created.length,
-          },
+            categoryOverride: input.categoryOverride,
+            categoryOverrideSource:
+              merchantRuleResult.appliedCount > 0
+                ? "merchant_rule"
+                : input.categoryOverride
+                  ? "input_category"
+                  : undefined,
+            merchantRuleOverrideCount:
+              merchantRuleResult.appliedCount > 0
+                ? merchantRuleResult.appliedCount
+                : undefined,
+          }),
         });
 
         return {
@@ -272,16 +276,4 @@ function combineClarification(
   answer: string,
 ): string {
   return `Original message: ${pending.originalMessage}. Clarification answer: ${answer}.`;
-}
-
-function elapsedSince(startedAt: number): number {
-  return Date.now() - startedAt;
-}
-
-function compactMetadata(
-  metadata: Record<string, unknown>,
-): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(metadata).filter(([, value]) => value !== undefined),
-  );
 }

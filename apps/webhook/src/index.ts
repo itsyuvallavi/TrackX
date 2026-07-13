@@ -1,6 +1,9 @@
 // Owner: apps/webhook. Cloudflare Worker entrypoint for Telegram webhooks.
 import { createTrackxApiClient } from "./api-client.js";
-import { sendBetterStackLog } from "@trackx/shared";
+import {
+  formatOperationalFailureLog,
+  sendBetterStackLog,
+} from "@trackx/shared";
 import { parseAllowedUserIds, type WebhookEnv } from "./env.js";
 import { handleIncomingMessage, type IncomingMessage } from "./handlers.js";
 import {
@@ -30,18 +33,21 @@ export default {
     }
 
     if (!isWebhookAuthorized(request, env)) {
-      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, env, {
-        correlationId,
-        eventType: "telegram_webhook_unauthorized",
-        status: "failed",
-        metadata: {
-          elapsedMs: elapsedSince(startedAt),
-          hasSecretHeader: request.headers.has(
-            "x-telegram-bot-api-secret-token",
-          ),
-        },
-        errorMessage: "Telegram webhook secret mismatch.",
-      }));
+      await scheduleWebhookEvent(
+        ctx,
+        recordWebhookEvent(api, env, {
+          correlationId,
+          eventType: "telegram_webhook_unauthorized",
+          status: "failed",
+          metadata: {
+            elapsedMs: elapsedSince(startedAt),
+            hasSecretHeader: request.headers.has(
+              "x-telegram-bot-api-secret-token",
+            ),
+          },
+          errorMessage: "Telegram webhook secret mismatch.",
+        }),
+      );
       return new Response("Unauthorized.", { status: 401 });
     }
 
@@ -50,32 +56,38 @@ export default {
       const { chatId, userId, messageId, messageDate, text } =
         readTelegramUpdate(body);
 
-      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, env, {
-        correlationId,
-        eventType: "telegram_update_received",
-        telegramUserId: userId,
-        telegramMessageId: messageId,
-        rawMessagePreview: text,
-        metadata: {
-          elapsedMs: elapsedSince(startedAt),
-          telegramSentAt: telegramSentAt(messageDate),
-          telegramToWebhookMs: telegramToWebhookMs(messageDate, startedAt),
-        },
-      }));
-
-      if (chatId === undefined) {
-        await scheduleWebhookEvent(ctx, recordWebhookEvent(api, env, {
+      await scheduleWebhookEvent(
+        ctx,
+        recordWebhookEvent(api, env, {
           correlationId,
-          eventType: "telegram_update_ignored",
-          status: "ignored",
+          eventType: "telegram_update_received",
           telegramUserId: userId,
           telegramMessageId: messageId,
           rawMessagePreview: text,
           metadata: {
             elapsedMs: elapsedSince(startedAt),
-            reason: "missing_chat_id",
+            telegramSentAt: telegramSentAt(messageDate),
+            telegramToWebhookMs: telegramToWebhookMs(messageDate, startedAt),
           },
-        }));
+        }),
+      );
+
+      if (chatId === undefined) {
+        await scheduleWebhookEvent(
+          ctx,
+          recordWebhookEvent(api, env, {
+            correlationId,
+            eventType: "telegram_update_ignored",
+            status: "ignored",
+            telegramUserId: userId,
+            telegramMessageId: messageId,
+            rawMessagePreview: text,
+            metadata: {
+              elapsedMs: elapsedSince(startedAt),
+              reason: "missing_chat_id",
+            },
+          }),
+        );
         return new Response("ok", { status: 200 });
       }
 
@@ -104,30 +116,38 @@ export default {
 
       const replyStartedAt = Date.now();
       await sendTelegramMessage(env, chatId, reply);
-      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, env, {
-        correlationId,
-        eventType: "telegram_reply_sent",
-        telegramUserId: userId,
-        telegramMessageId: messageId,
-        rawMessagePreview: text,
-        metadata: {
-          elapsedMs: elapsedSince(startedAt),
-          replySendDurationMs: elapsedSince(replyStartedAt),
-          replyPreview: preview(reply),
-        },
-      }));
+      await scheduleWebhookEvent(
+        ctx,
+        recordWebhookEvent(api, env, {
+          correlationId,
+          eventType: "telegram_reply_sent",
+          telegramUserId: userId,
+          telegramMessageId: messageId,
+          rawMessagePreview: text,
+          metadata: {
+            elapsedMs: elapsedSince(startedAt),
+            replySendDurationMs: elapsedSince(replyStartedAt),
+            replyPreview: preview(reply),
+          },
+        }),
+      );
       return new Response("ok", { status: 200 });
     } catch (error) {
-      await scheduleWebhookEvent(ctx, recordWebhookEvent(api, env, {
+      await scheduleWebhookEvent(
+        ctx,
+        recordWebhookEvent(api, env, {
+          correlationId,
+          eventType: "telegram_webhook_failed",
+          status: "failed",
+          metadata: { elapsedMs: elapsedSince(startedAt) },
+          errorMessage: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      logNativeFailure(
+        "telegram_webhook_failed",
         correlationId,
-        eventType: "telegram_webhook_failed",
-        status: "failed",
-        metadata: { elapsedMs: elapsedSince(startedAt) },
-        errorMessage: error instanceof Error ? error.message : String(error),
-      }));
-      console.error(
-        "[webhook] Failed to process Telegram update:",
-        error instanceof Error ? error.message : error,
+        "telegram_webhook_failed",
+        error,
       );
 
       return new Response("Webhook processing failed.", { status: 500 });
@@ -171,9 +191,11 @@ async function recordWebhookEvent(
     });
   } catch (error) {
     await recordBetterStackFallback(env, input, error);
-    console.error(
-      "[webhook] Failed to record system event:",
-      error instanceof Error ? error.message : error,
+    logNativeFailure(
+      "system_event_write_failed",
+      input.correlationId,
+      input.eventType,
+      error,
     );
   }
 }
@@ -195,15 +217,6 @@ async function recordBetterStackFallback(
         correlationId: input.correlationId,
         eventType: input.eventType,
         status: input.status ?? "ok",
-        telegramUserId:
-          input.telegramUserId === undefined
-            ? undefined
-            : String(input.telegramUserId),
-        telegramMessageId:
-          input.telegramMessageId === undefined
-            ? undefined
-            : String(input.telegramMessageId),
-        rawMessagePreview: preview(input.rawMessagePreview),
         errorMessage: input.errorMessage,
         metadata: {
           ...input.metadata,
@@ -217,11 +230,30 @@ async function recordBetterStackFallback(
       },
     );
   } catch (error) {
-    console.error(
-      "[webhook] Failed to export fallback event:",
-      error instanceof Error ? error.message : error,
+    logNativeFailure(
+      "better_stack_fallback_failed",
+      input.correlationId,
+      input.eventType,
+      error,
     );
   }
+}
+
+function logNativeFailure(
+  message: string,
+  correlationId: string,
+  failedEventType: string,
+  error: unknown,
+): void {
+  console.error(
+    formatOperationalFailureLog({
+      message,
+      service: "cloudflare",
+      correlationId,
+      failedEventType,
+      error,
+    }),
+  );
 }
 
 async function scheduleWebhookEvent(

@@ -56,6 +56,12 @@ enum MessageEventStatus {
   failed
 }
 
+enum MerchantCategoryRuleSource {
+  manual
+  telegram_correction
+  import_correction
+}
+
 model User {
   id                    String                 @id @default(uuid()) @db.Uuid
   telegramUserId        String?                @unique
@@ -65,6 +71,7 @@ model User {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   budgets               Budget[]
+  merchantCategoryRules MerchantCategoryRule[]
   messageEvents         MessageEvent[]
   parseEvents           ParseEvent[]
   pendingClarifications PendingClarification[]
@@ -84,6 +91,7 @@ model Category {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   budgets          Budget[]
+  merchantRules    MerchantCategoryRule[]
   parentCategory   Category?     @relation("CategoryChildren", fields: [parentCategoryId], references: [id])
   childCategories  Category[]    @relation("CategoryChildren")
   transactions     Transaction[]
@@ -235,4 +243,21 @@ model ShortcutImportToken {
 
   @@index([userId, revokedAt])
   @@map("shortcut_import_tokens")
+}
+
+model MerchantCategoryRule {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  userId             String                     @db.Uuid
+  categoryId         String                     @db.Uuid
+  merchantPattern    String
+  normalizedMerchant String
+  source             MerchantCategoryRuleSource @default(manual)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  category           Category                   @relation(fields: [categoryId], references: [id])
+  user               User                       @relation(fields: [userId], references: [id])
+
+  @@unique([userId, normalizedMerchant])
+  @@index([userId, categoryId])
+  @@map("merchant_category_rules")
 }

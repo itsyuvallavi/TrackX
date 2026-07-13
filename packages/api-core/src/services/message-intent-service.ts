@@ -102,6 +102,7 @@ async function updateCategoryFromIntent(
   const updated = await transactions.update(target.id, {
     userId,
     category: intent.category,
+    rememberMerchantCategory: true,
   });
 
   return {

@@ -13,6 +13,7 @@ import {
   createOpenAiTransactionIntentClient,
   createPrismaBudgetRepository,
   createPrismaExchangeRateRepository,
+  createPrismaMerchantCategoryRuleRepository,
   createPrismaParseEventRepository,
   createPrismaPendingClarificationRepository,
   createPrismaTransactionRepository,
@@ -71,6 +72,7 @@ function createDefaultTransactionService(
     createPrismaUserRepository(prisma),
     createPrismaTransactionRepository(prisma),
     createExchangeRateService(createPrismaExchangeRateRepository(prisma)),
+    createPrismaMerchantCategoryRuleRepository(prisma),
   );
 }
 
@@ -89,6 +91,9 @@ function createDefaultFromMessageService(
   budgetService: BudgetService,
   prisma: PrismaClient = createPrismaClient(),
 ): FromMessageService {
+  const merchantCategoryRules =
+    createPrismaMerchantCategoryRuleRepository(prisma);
+
   return createFromMessageService(
     createHttpParserClient(config.parserBaseUrl),
     createPrismaParseEventRepository(prisma),
@@ -96,6 +101,8 @@ function createDefaultFromMessageService(
     transactionService,
     createDefaultMessageIntentService(config, transactionService),
     createBudgetAlertService(budgetService),
+    undefined,
+    merchantCategoryRules,
   );
 }
 

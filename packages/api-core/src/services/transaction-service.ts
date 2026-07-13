@@ -12,8 +12,10 @@ import type {
   TransactionRepository,
   TransactionListSort,
 } from "../repositories/transactions.js";
+import type { MerchantCategoryRuleRepository } from "../repositories/merchant-category-rules.js";
 import type { UserRepository } from "../repositories/users.js";
 import type { ExchangeRateService } from "./exchange-rate-service.js";
+import { learnMerchantCategoryRuleFromTransaction } from "./merchant-category-rule-service.js";
 
 export class ApiNotFoundError extends Error {
   constructor(message: string) {
@@ -93,6 +95,7 @@ export function createTransactionService(
   users: UserRepository,
   transactions: TransactionRepository,
   exchangeRates?: ExchangeRateService,
+  merchantCategoryRules?: MerchantCategoryRuleRepository,
 ): TransactionService {
   async function resolveUser(userId?: string): Promise<string> {
     if (!userId) {
@@ -202,6 +205,12 @@ export function createTransactionService(
         throw new ApiNotFoundError("Transaction not found.");
       }
 
+      await learnMerchantCategoryRuleFromTransaction(
+        merchantCategoryRules,
+        updated,
+        "telegram_correction",
+      );
+
       return updated;
     },
 
@@ -235,6 +244,14 @@ export function createTransactionService(
 
       if (!updated) {
         throw new ApiNotFoundError("Transaction not found.");
+      }
+
+      if (input.rememberMerchantCategory && input.category !== undefined) {
+        await learnMerchantCategoryRuleFromTransaction(
+          merchantCategoryRules,
+          updated,
+          "manual",
+        );
       }
 
       return updated;

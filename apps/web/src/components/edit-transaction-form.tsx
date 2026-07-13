@@ -33,6 +33,9 @@ export function EditTransactionForm({
   const [transactionDate, setTransactionDate] = useState(
     transaction.transactionDate,
   );
+  const [rememberMerchantCategory, setRememberMerchantCategory] = useState(
+    Boolean(transaction.merchant),
+  );
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -52,6 +55,10 @@ export function EditTransactionForm({
       description: description.trim(),
       merchant: merchant.trim() ? merchant.trim() : null,
       transactionDate,
+      rememberMerchantCategory:
+        Boolean(merchant.trim()) && category !== transaction.category
+          ? rememberMerchantCategory
+          : undefined,
     };
 
     startTransition(async () => {
@@ -156,6 +163,20 @@ export function EditTransactionForm({
           />
         </label>
       </div>
+
+      {merchant.trim() && category !== transaction.category ? (
+        <label className="flex items-center gap-2 text-sm font-medium text-ink">
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-brand"
+            checked={rememberMerchantCategory}
+            onChange={(event) =>
+              setRememberMerchantCategory(event.target.checked)
+            }
+          />
+          Remember this category for {merchant.trim()}
+        </label>
+      ) : null}
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
 

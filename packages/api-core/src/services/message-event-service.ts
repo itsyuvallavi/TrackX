@@ -1,4 +1,5 @@
 // Owner: packages/api-core. Best-effort lifecycle logging for message flows.
+import { formatOperationalFailureLog } from "@trackx/shared";
 import type {
   CreateMessageEventInput,
   MessageEventRepository,
@@ -30,9 +31,14 @@ export type MessageEventObserver = {
   record(input: CreateMessageEventInput): Promise<void>;
 };
 
+export type MessageEventObservationScheduler = (
+  task: () => Promise<void>,
+) => void;
+
 export function createMessageEventService(
   repository: MessageEventRepository,
   observer?: MessageEventObserver,
+  scheduleObservation?: MessageEventObservationScheduler,
 ): MessageEventService {
   return {
     async record(input) {
@@ -41,26 +47,71 @@ export function createMessageEventService(
       }
 
       const event = toCreateInput(input);
+      const persistencePromise = repository.create(event);
+      let observationPromise = Promise.resolve();
+
+      if (observer && scheduleObservation) {
+        try {
+          scheduleObservation(() => observe(observer, event));
+        } catch (error) {
+          logObservationError(event, error);
+        }
+      } else if (observer) {
+        observationPromise = observer.record(event);
+      }
+
       const [persistence, observation] = await Promise.allSettled([
-        repository.create(event),
-        observer?.record(event) ?? Promise.resolve(),
+        persistencePromise,
+        observationPromise,
       ]);
 
       if (persistence.status === "rejected") {
-        console.error(
-          "[message-events] failed to record event:",
-          errorMessage(persistence.reason),
+        logEventFailure(
+          "message_event_persistence_failed",
+          event,
+          persistence.reason,
         );
       }
 
       if (observation.status === "rejected") {
-        console.error(
-          "[message-events] failed to export event:",
-          errorMessage(observation.reason),
-        );
+        logObservationError(event, observation.reason);
       }
     },
   };
+}
+
+async function observe(
+  observer: MessageEventObserver,
+  event: CreateMessageEventInput,
+): Promise<void> {
+  try {
+    await observer.record(event);
+  } catch (error) {
+    logObservationError(event, error);
+  }
+}
+
+function logObservationError(
+  event: CreateMessageEventInput,
+  error: unknown,
+): void {
+  logEventFailure("message_event_export_failed", event, error);
+}
+
+function logEventFailure(
+  message: string,
+  event: CreateMessageEventInput,
+  error: unknown,
+): void {
+  console.error(
+    formatOperationalFailureLog({
+      message,
+      service: "vercel",
+      correlationId: event.correlationId,
+      failedEventType: event.eventType,
+      error,
+    }),
+  );
 }
 
 function toCreateInput(

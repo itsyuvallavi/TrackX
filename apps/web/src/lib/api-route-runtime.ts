@@ -10,6 +10,7 @@ import {
   createExchangeRateService,
   createPrismaBudgetRepository,
   createPrismaExchangeRateRepository,
+  createPrismaMerchantCategoryRuleRepository,
   createPrismaMessageEventRepository,
   createPrismaParseEventRepository,
   createPrismaPendingClarificationRepository,
@@ -33,6 +34,7 @@ import {
 import { createPrismaClient, type PrismaClient } from "@trackx/db";
 import { createOpenAiParser } from "@trackx/parser-core";
 import { sendBetterStackLog } from "@trackx/shared";
+import { after } from "next/server";
 
 type ApiRouteServices = {
   budgetService: BudgetService;
@@ -89,10 +91,13 @@ function getServices(): ApiRouteServices {
   const exchangeRateService = createExchangeRateService(
     createPrismaExchangeRateRepository(client),
   );
+  const merchantCategoryRules =
+    createPrismaMerchantCategoryRuleRepository(client);
   const transactionService = createTransactionService(
     users,
     createPrismaTransactionRepository(client),
     exchangeRateService,
+    merchantCategoryRules,
   );
   const messageEventService = createMessageEventService(
     createPrismaMessageEventRepository(client),
@@ -109,10 +114,6 @@ function getServices(): ApiRouteServices {
             correlationId: event.correlationId,
             eventType: event.eventType,
             status: event.status,
-            userId: event.userId,
-            telegramUserId: event.telegramUserId,
-            telegramMessageId: event.telegramMessageId,
-            rawMessagePreview: event.rawMessagePreview,
             errorMessage: event.errorMessage,
             metadata: event.metadata,
             environment: process.env.VERCEL_ENV ?? "local",
@@ -120,6 +121,7 @@ function getServices(): ApiRouteServices {
         );
       },
     },
+    (task) => after(task),
   );
 
   services = {
@@ -132,6 +134,7 @@ function getServices(): ApiRouteServices {
       createMessageIntentService(getIntentClient(), transactionService),
       createBudgetAlertService(budgetService),
       messageEventService,
+      merchantCategoryRules,
     ),
     messageEventService,
     shortcutImportService: createShortcutImportService(
@@ -144,6 +147,7 @@ function getServices(): ApiRouteServices {
         createMessageIntentService(getIntentClient(), transactionService),
         createBudgetAlertService(budgetService),
         messageEventService,
+        merchantCategoryRules,
       ),
     ),
     telegramLinkService: createTelegramLinkService(

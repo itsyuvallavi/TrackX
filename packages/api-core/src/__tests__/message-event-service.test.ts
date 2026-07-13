@@ -63,6 +63,15 @@ describe("createMessageEventService", () => {
       }),
     ).resolves.toBeUndefined();
 
+    expect(parseNativeLog(consoleSpy)).toEqual({
+      level: "error",
+      message: "message_event_persistence_failed",
+      service: "vercel",
+      correlationId: "trace-2",
+      failedEventType: "parser_started",
+      errorMessage: "database unavailable",
+    });
+
     consoleSpy.mockRestore();
   });
 
@@ -100,14 +109,83 @@ describe("createMessageEventService", () => {
         eventType: "parser_started",
       }),
     ).resolves.toBeUndefined();
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "[message-events] failed to export event:",
-      "telemetry unavailable",
+    expect(parseNativeLog(consoleSpy)).toEqual({
+      level: "error",
+      message: "message_event_export_failed",
+      service: "vercel",
+      correlationId: "trace-4",
+      failedEventType: "parser_started",
+      errorMessage: "telemetry unavailable",
+    });
+
+    consoleSpy.mockRestore();
+  });
+
+  it("schedules external export without delaying durable persistence", async () => {
+    const observed: CreateMessageEventInput[] = [];
+    const scheduled: Array<() => Promise<void>> = [];
+    const service = createMessageEventService(
+      fakeRepository([]),
+      {
+        async record(input) {
+          observed.push(input);
+        },
+      },
+      (task) => scheduled.push(task),
     );
+
+    await service.record({
+      correlationId: "trace-5",
+      source: "api",
+      eventType: "apple_wallet_import_received",
+    });
+
+    expect(observed).toEqual([]);
+    expect(scheduled).toHaveLength(1);
+
+    await scheduled[0]?.();
+
+    expect(observed).toHaveLength(1);
+  });
+
+  it("does not throw when external export scheduling fails", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const service = createMessageEventService(
+      fakeRepository([]),
+      { async record() {} },
+      () => {
+        throw new Error("request lifecycle unavailable");
+      },
+    );
+
+    await expect(
+      service.record({
+        correlationId: "trace-6",
+        source: "api",
+        eventType: "parser_started",
+      }),
+    ).resolves.toBeUndefined();
+    expect(parseNativeLog(consoleSpy)).toEqual({
+      level: "error",
+      message: "message_event_export_failed",
+      service: "vercel",
+      correlationId: "trace-6",
+      failedEventType: "parser_started",
+      errorMessage: "request lifecycle unavailable",
+    });
 
     consoleSpy.mockRestore();
   });
 });
+
+function parseNativeLog(
+  consoleSpy: ReturnType<typeof vi.spyOn>,
+): Record<string, unknown> {
+  return JSON.parse(String(consoleSpy.mock.calls[0]?.[0])) as Record<
+    string,
+    unknown
+  >;
+}
 
 function fakeRepository(
   created: CreateMessageEventInput[],

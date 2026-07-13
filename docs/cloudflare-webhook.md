@@ -116,8 +116,10 @@ object, including fields such as `elapsedMs`, `parserDurationMs`,
 logging does not block the Telegram reply path in production.
 
 The Vercel API persists each event to Supabase and, when configured, exports a
-best-effort copy to Better Stack. If the Worker's protected Vercel event write
-fails, the Worker sends that event directly to Better Stack with
+sanitized, best-effort operational copy to Better Stack after the request. The
+hosted copy excludes Telegram identifiers and raw message or reply previews.
+If the Worker's protected Vercel event write fails, the Worker sends the same
+sanitized event directly to Better Stack with
 `delivery=cloudflare_direct_fallback`. It does not send directly during the
 normal path, so hosted events are not duplicated.
 
@@ -167,16 +169,16 @@ You do not need both in production. Pick one receiver for Telegram.
 
 ## Environment variables
 
-| Variable                  | Purpose                                        |
-| ------------------------- | ---------------------------------------------- |
-| `TELEGRAM_BOT_TOKEN`      | Bot token from BotFather                       |
-| `API_BASE_URL`            | Public or tunneled TrackX API base URL         |
-| `TRACKX_API_SECRET`       | Shared secret for Cloudflare-to-Vercel API     |
-| `DEFAULT_TIMEZONE`        | Default timezone for parsing                   |
-| `DEFAULT_CURRENCY`        | Default currency for parsing                   |
-| `TELEGRAM_WEBHOOK_SECRET` | Optional shared secret validated from Telegram |
-| `BETTER_STACK_SOURCE_TOKEN` | Optional Better Stack telemetry source token |
-| `BETTER_STACK_INGESTING_HOST` | Optional Better Stack telemetry ingest host |
+| Variable                      | Purpose                                        |
+| ----------------------------- | ---------------------------------------------- |
+| `TELEGRAM_BOT_TOKEN`          | Bot token from BotFather                       |
+| `API_BASE_URL`                | Public or tunneled TrackX API base URL         |
+| `TRACKX_API_SECRET`           | Shared secret for Cloudflare-to-Vercel API     |
+| `DEFAULT_TIMEZONE`            | Default timezone for parsing                   |
+| `DEFAULT_CURRENCY`            | Default currency for parsing                   |
+| `TELEGRAM_WEBHOOK_SECRET`     | Optional shared secret validated from Telegram |
+| `BETTER_STACK_SOURCE_TOKEN`   | Optional Better Stack telemetry source token   |
+| `BETTER_STACK_INGESTING_HOST` | Optional Better Stack telemetry ingest host    |
 
 ## Health check
 

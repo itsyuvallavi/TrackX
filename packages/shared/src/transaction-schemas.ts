@@ -34,7 +34,11 @@ export const UpdateTransactionSchema = CreateTransactionSchema.pick({
   description: true,
   merchant: true,
   transactionDate: true,
-}).partial();
+})
+  .partial()
+  .extend({
+    rememberMerchantCategory: z.boolean().optional(),
+  });
 
 export type TransactionType = z.infer<typeof TransactionTypeSchema>;
 export type TransactionSource = z.infer<typeof TransactionSourceSchema>;

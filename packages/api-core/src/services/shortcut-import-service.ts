@@ -2,18 +2,18 @@
 import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import {
+  resolveCategoryName,
   normalizeCurrency,
   normalizeTimezone,
+  type CategoryName,
   type Currency,
 } from "@trackx/shared";
 import type {
   ShortcutImportTokenRecord,
   ShortcutImportTokenRepository,
 } from "../repositories/shortcut-import-tokens.js";
-import type {
-  FromMessageResponse,
-  FromMessageService,
-} from "./from-message-service.js";
+import type { FromMessageResponse } from "./from-message-schema.js";
+import type { FromMessageService } from "./from-message-service.js";
 
 export class ShortcutImportUnauthorizedError extends Error {
   constructor() {
@@ -35,6 +35,7 @@ export const AppleWalletImportSchema = z.object({
   amount: z.unknown(),
   card: z.unknown().optional(),
   name: z.unknown().optional(),
+  category: z.unknown().optional(),
   currency: z.string().trim().optional(),
   timezone: z.string().trim().optional(),
   transactionDate: z.string().date().optional(),
@@ -101,6 +102,9 @@ export function createShortcutImportService(
         defaultCurrency: normalized.currency,
         correlationId: input.correlationId,
         source: "import",
+        ...(normalized.categoryOverride
+          ? { categoryOverride: normalized.categoryOverride }
+          : {}),
       });
       await tokens.markUsed(tokenRecord.id);
 
@@ -116,10 +120,15 @@ export function createShortcutImportService(
 function normalizeAppleWalletPayload(
   payload: AppleWalletImportInput,
   defaultCurrency: Currency,
-): { message: string; currency: Currency } {
+): {
+  message: string;
+  currency: Currency;
+  categoryOverride?: CategoryName;
+} {
   const merchant = cleanText(payload.merchant) ?? cleanText(payload.name);
   const card = cleanText(payload.card);
   const amountText = cleanText(payload.amount);
+  const categoryOverride = resolveAppleWalletCategory(payload.category);
 
   if (!merchant) {
     throw new ShortcutImportBadRequestError("Missing merchant.");
@@ -137,6 +146,7 @@ function normalizeAppleWalletPayload(
     defaultCurrency;
 
   return {
+    ...(categoryOverride ? { categoryOverride } : {}),
     currency,
     message: `${amount} ${currency.toLowerCase()} for ${merchant}`,
   };
@@ -199,4 +209,37 @@ function currencyFromText(value: string): Currency | null {
   }
 
   return normalizeCurrency(value);
+}
+
+const APPLE_WALLET_CATEGORY_ALIASES: Readonly<Record<string, CategoryName>> = {
+  dining: "Restaurants / Cafes / Fun",
+  entertainment: "Restaurants / Cafes / Fun",
+  "food drink": "Restaurants / Cafes / Fun",
+  "food drinks": "Restaurants / Cafes / Fun",
+  "food and drink": "Restaurants / Cafes / Fun",
+  restaurants: "Restaurants / Cafes / Fun",
+  transit: "Transport",
+  transportation: "Transport",
+  "bills utilities": "Utilities",
+};
+
+function resolveAppleWalletCategory(value: unknown): CategoryName | undefined {
+  const category = cleanText(value);
+  if (!category) {
+    return undefined;
+  }
+
+  return (
+    resolveCategoryName(category) ??
+    APPLE_WALLET_CATEGORY_ALIASES[normalizeCategoryKey(category)]
+  );
+}
+
+function normalizeCategoryKey(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/&/gu, " and ")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }

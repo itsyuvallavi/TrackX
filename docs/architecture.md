@@ -58,6 +58,9 @@ clarification instead of writing.
 Telegram correction commands are constrained API writes. `/category last
 <category>` updates only the latest active Telegram transaction category after
 the API validates the requested category. It remains available as a fallback.
+Corrected merchant categories can be saved to `merchant_category_rules`; those
+per-user rules are applied before broad Wallet category hints or model guesses
+on later imports.
 
 ## Dashboard Data Flow
 

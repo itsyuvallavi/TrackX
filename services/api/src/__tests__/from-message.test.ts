@@ -40,6 +40,66 @@ describe("from-message route", () => {
     expect(harness.parseEvents[0]?.status).toBe("success");
   });
 
+  it("uses a category override for weak parser output", async () => {
+    const parserResult = foodResponse();
+    parserResult.transactions[0]!.amount = 3;
+    parserResult.transactions[0]!.category = "Misc";
+    parserResult.transactions[0]!.confidence = 0.2;
+    parserResult.transactions[0]!.description = "Melbourne Elouera";
+    parserResult.transactions[0]!.merchant = "Melbourne Elouera";
+    const harness = await createHarness(parserResult);
+
+    const response = await harness.server.inject({
+      method: "POST",
+      url: "/transactions/from-message",
+      payload: {
+        message: "3 eur for Melbourne Elouera",
+        timezone: "Europe/Lisbon",
+        defaultCurrency: "EUR",
+        categoryOverride: "Restaurants / Cafes / Fun",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().transactions).toMatchObject([
+      {
+        amount: 3,
+        category: "Restaurants / Cafes / Fun",
+        rawMessage: "3 eur for Melbourne Elouera",
+      },
+    ]);
+  });
+
+  it("does not let an import category override a confident parser category", async () => {
+    const parserResult = foodResponse();
+    parserResult.transactions[0]!.amount = 4.56;
+    parserResult.transactions[0]!.category = "Restaurants / Cafes / Fun";
+    parserResult.transactions[0]!.confidence = 0.98;
+    parserResult.transactions[0]!.description = "Too Good To Go";
+    parserResult.transactions[0]!.merchant = "Too Good To Go";
+    const harness = await createHarness(parserResult);
+
+    const response = await harness.server.inject({
+      method: "POST",
+      url: "/transactions/from-message",
+      payload: {
+        message: "4.56 eur for Too Good To Go",
+        timezone: "Europe/Lisbon",
+        defaultCurrency: "EUR",
+        categoryOverride: "Shopping",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().transactions).toMatchObject([
+      {
+        amount: 4.56,
+        category: "Restaurants / Cafes / Fun",
+        rawMessage: "4.56 eur for Too Good To Go",
+      },
+    ]);
+  });
+
   it("accepts timezone values with hidden whitespace", async () => {
     const harness = await createHarness(foodResponse());
 

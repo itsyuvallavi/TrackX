@@ -10,9 +10,22 @@ Deterministic category rules in `@trackx/shared` remain useful as prompt guidanc
 
 The OpenAI call uses deterministic temperature for lower eval variance.
 
-## Category Rule Order
+## Category Priority
 
-Rules are applied from most specific to most generic. This prevents broad words such as `food` from overriding merchants with special meanings.
+Category selection uses this priority:
+
+1. Per-user merchant memory saved from transaction edits or Telegram category corrections.
+2. Deterministic global merchant/category rules in `@trackx/shared`.
+3. Apple Wallet Shortcut category hints.
+4. OpenAI parser inference.
+5. Fallback: Misc.
+
+Per-user merchant memory is intentionally above Apple Wallet category hints
+because Wallet categories can be too broad for TrackX budgets.
+
+## Global Category Rule Order
+
+Global deterministic rules are applied from most specific to most generic. This prevents broad words such as `food` from overriding merchants with special meanings.
 
 1. Food delivery merchants: Bolt Food, Uber Eats, Too Good To Go.
 2. Transport merchants and routes: Bolt ride, metro, bus, train, Carris.

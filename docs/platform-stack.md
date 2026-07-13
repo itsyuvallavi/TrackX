@@ -128,11 +128,54 @@ table so Cloudflare and Vercel events can be joined by correlation ID. Use
 `pnpm logs:live` to watch those events in one terminal stream.
 
 If `BETTER_STACK_SOURCE_TOKEN` and `BETTER_STACK_INGESTING_HOST` are present,
-Vercel also exports the same structured events to Better Stack. Supabase stays
-the durable audit source. Better Stack delivery is best effort and cannot make
-an expense, reply, or database write fail. The Cloudflare Worker sends a direct
-fallback event only when its protected Vercel event write fails, avoiding
-duplicate hosted logs during the normal path.
+Vercel also exports a sanitized operational subset to Better Stack after the
+request. Supabase stays the durable audit source and retains the full event.
+The hosted copy excludes user and Telegram identifiers plus raw message and
+reply previews. Better Stack delivery is best effort and cannot make an
+expense, reply, or database write fail. The Cloudflare Worker sends the same
+sanitized direct fallback only when its protected Vercel event write fails,
+avoiding duplicate hosted logs during the normal path.
+
+The
+[TrackX Operations dashboard](https://telemetry.betterstack.com/team/t568293/dashboards/1070531)
+is the central hosted operational view. Its Health, Latency, Diagnostics, and
+Alerts sections use labels extracted from new events (`service_name`,
+`event_type`, `status`, `delivery`, and `environment`) plus the `elapsed_ms`
+metric. Existing history is not backfilled. Enabled email alerts cover any
+failed event, any fallback delivery, and Apple Wallet imports exceeding 15
+seconds. Supabase `message_events` remains the complete audit and
+reconciliation source.
+
+Vercel and Cloudflare native runtime logs are the fallback when either durable
+event persistence or hosted export fails. Failure-only entries are emitted as
+single-line JSON with `service`, `correlationId`, `failedEventType`, and a
+secret-redacted `errorMessage`; they never include transaction text or user and
+Telegram identifiers. Use the correlation ID to reconcile a native failure
+against Supabase or Better Stack. Native retention is platform-plan dependent,
+so it is a diagnostic fallback rather than the audit source.
+
+Search Vercel runtime logs for `message_event_persistence_failed` or
+`message_event_export_failed`. Search Cloudflare Workers Logs for
+`system_event_write_failed`, `better_stack_fallback_failed`, or
+`telegram_webhook_failed`. A successful normal request does not emit these
+native fallback entries.
+
+### Production trace verification
+
+Use one synthetic correlation ID to verify the complete observability path:
+
+1. Send a protected `telemetry_smoke_test` event to the production
+   `/api/system-events` route with `x-trackx-api-secret`.
+2. Confirm the same correlation ID appears in Supabase `message_events`.
+3. Confirm it appears in the Better Stack live tail and TrackX Operations
+   dashboard without raw message or user identifiers.
+4. Confirm Vercel has no matching `message_event_persistence_failed` or
+   `message_event_export_failed` entry.
+5. For Telegram failures, search Cloudflare by the same correlation ID before
+   changing application code.
+
+The smoke event must contain synthetic metadata only. Never paste production
+tokens, Telegram identifiers, transaction text, or user data into a test event.
 
 ### Keys
 
@@ -240,16 +283,16 @@ You → Telegram → Cloudflare Worker → Vercel API → parser/OpenAI → Supa
 
 Set with `wrangler secret put` or Cloudflare dashboard. Local dev uses `apps/webhook/.dev.vars` (from `.dev.vars.example`):
 
-| Variable                  | Purpose                                |
-| ------------------------- | -------------------------------------- |
-| `TELEGRAM_BOT_TOKEN`      | From BotFather                         |
-| `API_BASE_URL`            | Public Vercel API base URL             |
-| `TRACKX_API_SECRET`       | Shared Cloudflare-to-Vercel API secret |
-| `TELEGRAM_WEBHOOK_SECRET` | Optional webhook verification          |
-| `BETTER_STACK_SOURCE_TOKEN` | Optional Better Stack source token   |
-| `BETTER_STACK_INGESTING_HOST` | Optional Better Stack ingest host  |
-| `DEFAULT_TIMEZONE`        | In `wrangler.toml` [vars]              |
-| `DEFAULT_CURRENCY`        | In `wrangler.toml` [vars]              |
+| Variable                      | Purpose                                |
+| ----------------------------- | -------------------------------------- |
+| `TELEGRAM_BOT_TOKEN`          | From BotFather                         |
+| `API_BASE_URL`                | Public Vercel API base URL             |
+| `TRACKX_API_SECRET`           | Shared Cloudflare-to-Vercel API secret |
+| `TELEGRAM_WEBHOOK_SECRET`     | Optional webhook verification          |
+| `BETTER_STACK_SOURCE_TOKEN`   | Optional Better Stack source token     |
+| `BETTER_STACK_INGESTING_HOST` | Optional Better Stack ingest host      |
+| `DEFAULT_TIMEZONE`            | In `wrangler.toml` [vars]              |
+| `DEFAULT_CURRENCY`            | In `wrangler.toml` [vars]              |
 
 Setup details: [cloudflare-webhook.md](./cloudflare-webhook.md).
 

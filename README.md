@@ -490,25 +490,25 @@ The worker uses `REDIS_URL` from `.env`. In Docker, it uses `redis://redis:6379`
 
 Variables used by TrackX services and tooling:
 
-| Variable                    | Purpose                                            |
-| --------------------------- | -------------------------------------------------- |
-| `DATABASE_URL`              | Postgres connection string                         |
-| `DIRECT_URL`                | Prisma migration connection string                 |
-| `REDIS_URL`                 | Redis connection string                            |
-| `OPENAI_API_KEY`            | Optional OpenAI key for parser and API edit intent |
-| `OPENAI_MODEL`              | OpenAI model used by parser and API edit intent    |
-| `PARSER_PORT`               | Parser service port                                |
-| `PARSER_BASE_URL`           | Local Fastify parser service base URL              |
-| `API_PORT`                  | API service port                                   |
-| `API_BASE_URL`              | API service base URL                               |
-| `TRACKX_API_SECRET`         | Shared Cloudflare-to-Vercel API secret             |
-| `BETTER_STACK_SOURCE_TOKEN` | Optional Better Stack telemetry source token       |
-| `BETTER_STACK_INGESTING_HOST` | Optional Better Stack telemetry ingest host      |
-| `TELEGRAM_BOT_TOKEN`        | Telegram bot token                                 |
-| `TELEGRAM_ALLOWED_USER_IDS` | Local polling bot allowlist of Telegram user IDs   |
-| `BOT_PORT`                  | Bot service port                                   |
-| `DEFAULT_TIMEZONE`          | Default user timezone                              |
-| `DEFAULT_CURRENCY`          | Default user currency                              |
+| Variable                      | Purpose                                            |
+| ----------------------------- | -------------------------------------------------- |
+| `DATABASE_URL`                | Postgres connection string                         |
+| `DIRECT_URL`                  | Prisma migration connection string                 |
+| `REDIS_URL`                   | Redis connection string                            |
+| `OPENAI_API_KEY`              | Optional OpenAI key for parser and API edit intent |
+| `OPENAI_MODEL`                | OpenAI model used by parser and API edit intent    |
+| `PARSER_PORT`                 | Parser service port                                |
+| `PARSER_BASE_URL`             | Local Fastify parser service base URL              |
+| `API_PORT`                    | API service port                                   |
+| `API_BASE_URL`                | API service base URL                               |
+| `TRACKX_API_SECRET`           | Shared Cloudflare-to-Vercel API secret             |
+| `BETTER_STACK_SOURCE_TOKEN`   | Optional Better Stack telemetry source token       |
+| `BETTER_STACK_INGESTING_HOST` | Optional Better Stack telemetry ingest host        |
+| `TELEGRAM_BOT_TOKEN`          | Telegram bot token                                 |
+| `TELEGRAM_ALLOWED_USER_IDS`   | Local polling bot allowlist of Telegram user IDs   |
+| `BOT_PORT`                    | Bot service port                                   |
+| `DEFAULT_TIMEZONE`            | Default user timezone                              |
+| `DEFAULT_CURRENCY`            | Default user currency                              |
 
 App-specific variables read outside `@trackx/config`:
 
@@ -541,9 +541,19 @@ pnpm logs:live -- --timezone Europe/Lisbon
 ```
 
 When `BETTER_STACK_SOURCE_TOKEN` and `BETTER_STACK_INGESTING_HOST` are set,
-the same structured lifecycle events are also exported to Better Stack for a
-hosted live tail. Supabase remains the durable audit source; Better Stack is a
-best-effort observability copy joined by the same `correlationId`.
+a sanitized operational subset of each lifecycle event is also exported to
+Better Stack for a hosted live tail. Supabase remains the durable audit source
+and retains the full event. Better Stack delivery runs after the request and
+cannot delay the user response; it excludes user and Telegram identifiers plus
+raw message and reply previews. Both stores use the same `correlationId`.
+
+The hosted operational view is the
+[TrackX Operations dashboard](https://telemetry.betterstack.com/team/t568293/dashboards/1070531).
+It contains 10 charts across Health, Latency, Diagnostics, and Alerts. Better
+Stack extracts `service_name`, `event_type`, `status`, `delivery`,
+`environment`, and `elapsed_ms` from new events; historical events are not
+backfilled. Email alerts fire for any failed event, any fallback delivery, or
+an Apple Wallet import taking longer than 15 seconds.
 
 The command reads `DATABASE_URL`, prints a masked database label, and never
 prints secret values. Timestamps display in `DEFAULT_TIMEZONE`, falling back to
