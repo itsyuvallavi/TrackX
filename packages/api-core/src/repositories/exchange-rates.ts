@@ -25,6 +25,20 @@ export function createPrismaExchangeRateRepository(
       return rate ? mapExchangeRate(rate) : null;
     },
 
+    async findLatest(input) {
+      const rate = await prisma.exchangeRate.findFirst({
+        where: {
+          baseCurrency: input.baseCurrency,
+          quoteCurrency: input.quoteCurrency,
+          source: input.source,
+          date: { lte: dateFromDay(input.onOrBefore) },
+        },
+        orderBy: { date: "desc" },
+      });
+
+      return rate ? mapExchangeRate(rate) : null;
+    },
+
     async upsert(input) {
       const rate = await prisma.exchangeRate.upsert({
         where: {

@@ -3,6 +3,9 @@ import type { Currency } from "@trackx/shared";
 
 const SOURCE = "frankfurter-ecb";
 const API_BASE_URL = "https://api.frankfurter.dev";
+const FETCH_ATTEMPTS = 2;
+const FETCH_TIMEOUT_MS = 4_000;
+const MAX_FALLBACK_AGE_DAYS = 14;
 
 export type ExchangeRateRecord = {
   baseCurrency: Currency;
@@ -17,6 +20,12 @@ export type ExchangeRateRepository = {
     baseCurrency: Currency;
     quoteCurrency: Currency;
     date: string;
+    source: string;
+  }): Promise<ExchangeRateRecord | null>;
+  findLatest(input: {
+    baseCurrency: Currency;
+    quoteCurrency: Currency;
+    onOrBefore: string;
     source: string;
   }): Promise<ExchangeRateRecord | null>;
   upsert(input: ExchangeRateRecord): Promise<ExchangeRateRecord>;
@@ -36,7 +45,10 @@ export type ExchangeRateService = {
 };
 
 export class ExchangeRateError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly retryable = false,
+  ) {
     super(message);
     this.name = "ExchangeRateError";
   }
@@ -66,12 +78,33 @@ export function createExchangeRateService(
       return cached.rate;
     }
 
-    const fetched = await fetchFrankfurterRate(
-      fetchRate,
-      baseCurrency,
-      quoteCurrency,
-      date,
-    );
+    let fetched: number;
+
+    try {
+      fetched = await fetchFrankfurterRateWithRetry(
+        fetchRate,
+        baseCurrency,
+        quoteCurrency,
+        date,
+      );
+    } catch (error) {
+      if (!(error instanceof ExchangeRateError) || !error.retryable) {
+        throw error;
+      }
+
+      const fallback = await repository.findLatest({
+        baseCurrency,
+        quoteCurrency,
+        onOrBefore: date,
+        source: SOURCE,
+      });
+
+      if (fallback && isRecentEnough(fallback.date, date)) {
+        return fallback.rate;
+      }
+
+      throw error;
+    }
 
     await repository.upsert({
       baseCurrency,
@@ -100,6 +133,35 @@ export function createExchangeRateService(
   };
 }
 
+async function fetchFrankfurterRateWithRetry(
+  fetchRate: typeof fetch,
+  baseCurrency: Currency,
+  quoteCurrency: Currency,
+  date: string,
+): Promise<number> {
+  let lastError: ExchangeRateError | null = null;
+
+  for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt += 1) {
+    try {
+      return await fetchFrankfurterRate(
+        fetchRate,
+        baseCurrency,
+        quoteCurrency,
+        date,
+      );
+    } catch (error) {
+      const normalized = normalizeFetchError(error);
+      lastError = normalized;
+
+      if (!normalized.retryable || attempt === FETCH_ATTEMPTS) {
+        throw normalized;
+      }
+    }
+  }
+
+  throw lastError ?? new ExchangeRateError("Exchange rate lookup failed.", true);
+}
+
 async function fetchFrankfurterRate(
   fetchRate: typeof fetch,
   baseCurrency: Currency,
@@ -110,24 +172,54 @@ async function fetchFrankfurterRate(
     date,
     providers: "ECB",
   });
-  const response = await fetchRate(
-    `${API_BASE_URL}/v2/rate/${baseCurrency}/${quoteCurrency}?${params}`,
-    { headers: { accept: "application/json" } },
-  );
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let response: Response;
+
+  try {
+    response = await fetchRate(
+      `${API_BASE_URL}/v2/rate/${baseCurrency}/${quoteCurrency}?${params}`,
+      {
+        headers: { accept: "application/json" },
+        signal: controller.signal,
+      },
+    );
+  } catch (error) {
+    throw normalizeFetchError(error);
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     throw new ExchangeRateError(
       `Exchange rate lookup failed: ${response.status}.`,
+      response.status === 429 || response.status >= 500,
     );
   }
 
   const body = (await response.json()) as { rate?: unknown };
 
   if (typeof body.rate !== "number" || !Number.isFinite(body.rate)) {
-    throw new ExchangeRateError("Exchange rate response was invalid.");
+    throw new ExchangeRateError("Exchange rate response was invalid.", true);
   }
 
   return body.rate;
+}
+
+function normalizeFetchError(error: unknown): ExchangeRateError {
+  if (error instanceof ExchangeRateError) {
+    return error;
+  }
+
+  return new ExchangeRateError("Exchange rate lookup failed.", true);
+}
+
+function isRecentEnough(rateDate: string, requestedDate: string): boolean {
+  const ageMs = Date.parse(`${requestedDate}T00:00:00.000Z`) -
+    Date.parse(`${rateDate}T00:00:00.000Z`);
+  const ageDays = ageMs / 86_400_000;
+
+  return ageDays >= 0 && ageDays <= MAX_FALLBACK_AGE_DAYS;
 }
 
 function roundMoney(amount: number): number {

@@ -190,7 +190,7 @@ curl http://localhost:4001/dashboard/week
 curl http://localhost:4001/dashboard/month
 ```
 
-Budget totals count non-deleted expense transactions in the user's default currency. Non-EUR Telegram/API entries are converted to EUR with Frankfurter's ECB provider, cached in Postgres, and then included in EUR budget totals.
+Budget totals count non-deleted expense transactions in the user's default currency. Non-EUR Telegram/API entries are converted to EUR with Frankfurter's ECB provider, cached in Postgres, and then included in EUR budget totals. Lookup failures receive two four-second attempts before falling back to the latest cached ECB rate on or before the purchase date, limited to 14 days old.
 
 ## API From-Message Check
 
