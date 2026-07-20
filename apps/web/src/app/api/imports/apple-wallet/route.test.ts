@@ -24,6 +24,10 @@ vi.mock("@/lib/api-route-runtime", () => ({
   }),
 }));
 
+vi.mock("@/lib/api-route-auth", () => ({
+  ApiUnauthorizedError: class ApiUnauthorizedError extends Error {},
+}));
+
 import { POST } from "./route";
 
 describe("POST /api/imports/apple-wallet", () => {

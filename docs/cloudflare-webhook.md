@@ -8,7 +8,7 @@ TrackX can receive Telegram messages through a Cloudflare Worker instead of the 
 Telegram message
   -> Cloudflare Worker (apps/webhook)
   -> TrackX API (/api/... on Vercel, or local API routes when configured)
-  -> parser/OpenAI + Supabase (through the API)
+  -> parser/OpenAI + Neon Postgres (through the API)
   -> Cloudflare Worker replies via Telegram sendMessage
 ```
 
@@ -63,7 +63,7 @@ curl -X POST "https://api.telegram.org/bot<token>/setWebhook" \
 
 Send a Telegram message and confirm the worker log shows the request and the bot replies.
 When the API is reachable, the webhook also writes safe lifecycle breadcrumbs
-to Supabase `message_events`.
+to Neon `message_events`.
 
 ## Production deploy
 
@@ -115,7 +115,7 @@ object, including fields such as `elapsedMs`, `parserDurationMs`,
 `telegramToWebhookMs`. Worker-side event writes use Cloudflare `waitUntil` so
 logging does not block the Telegram reply path in production.
 
-The Vercel API persists each event to Supabase and, when configured, exports a
+The Vercel API persists each event to Neon and, when configured, exports a
 sanitized, best-effort operational copy to Better Stack after the request. The
 hosted copy excludes Telegram identifiers and raw message or reply previews.
 If the Worker's protected Vercel event write fails, the Worker sends the same
@@ -136,7 +136,7 @@ pnpm logs:live
 
 Use `pnpm logs:live -- --once --limit 20` for a one-shot snapshot. Timestamps
 display in `DEFAULT_TIMEZONE`, falling back to `Europe/Lisbon`. For manual
-inspection, use Supabase Table Editor or SQL Editor:
+inspection, query Neon with the SQL Editor or `pnpm logs:live`:
 
 ```sql
 select

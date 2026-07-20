@@ -17,11 +17,6 @@ export async function requireApiUserId(): Promise<string> {
     throw new ApiUnauthorizedError();
   }
 
-  await getUserRepository().ensureAuthUser({
-    authUserId: user.id,
-    email: user.email,
-  });
-
   return user.id;
 }
 

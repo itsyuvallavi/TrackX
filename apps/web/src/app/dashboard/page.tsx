@@ -9,6 +9,8 @@ import { requireAuthenticatedUser } from "@/lib/auth";
 import { loadDashboardData } from "@/lib/server-page-data";
 import { formatDateTime } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const user = await requireAuthenticatedUser();
 

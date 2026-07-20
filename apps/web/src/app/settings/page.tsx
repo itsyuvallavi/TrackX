@@ -12,6 +12,8 @@ import {
   loadTelegramConnection,
 } from "@/lib/server-page-data";
 
+export const dynamic = "force-dynamic";
+
 export default async function SettingsPage() {
   const user = await requireAuthenticatedUser();
 

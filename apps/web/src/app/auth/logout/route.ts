@@ -1,10 +1,9 @@
-// Owner: apps/web. Supabase logout route for clearing dashboard sessions.
+// Owner: apps/web. Neon Auth logout route for clearing dashboard sessions.
 import { NextResponse, type NextRequest } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getNeonAuth } from "@/lib/neon-auth";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const supabase = await createSupabaseServerClient();
-  await supabase.auth.signOut();
+  await getNeonAuth().signOut();
 
   return NextResponse.redirect(new URL("/login", request.url), {
     status: 303,

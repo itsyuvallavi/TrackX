@@ -1,4 +1,4 @@
-// Owner: apps/web. Auth route placeholder that preserves current login flow.
+// Owner: apps/web. Auth route entrypoint that preserves the email login flow.
 import Link from "next/link";
 
 export default function AuthPage() {
@@ -13,14 +13,14 @@ export default function AuthPage() {
             Authentication space
           </h1>
           <p className="mt-2 text-sm text-ink-muted">
-            This route is reserved for the future auth shell. The current email
-            sign-in flow stays on the login route.
+            TrackX uses email sign-in. Continue to the login route to access
+            your private dashboard.
           </p>
         </div>
         <div className="panel panel-body space-y-4">
           <div className="rounded-md border border-surface-border bg-surface-muted p-4 text-sm text-ink-muted">
-            Supabase email auth is already wired. Provider selection and a full
-            account menu remain separate product slices.
+            Neon Auth owns login sessions. TrackX keeps finance records linked
+            to a stable internal account ID.
           </div>
           <Link className="btn-primary w-full" href="/login">
             Continue to login

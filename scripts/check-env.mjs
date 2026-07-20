@@ -32,8 +32,11 @@ const TARGETS = {
       "OPENAI_MODEL",
       "DEFAULT_TIMEZONE",
       "DEFAULT_CURRENCY",
+      "NEXT_PUBLIC_SITE_URL",
+      "NEON_AUTH_BASE_URL",
+      "NEON_AUTH_COOKIE_SECRET",
     ],
-    hostedRequired: ["DATABASE_URL", "DIRECT_URL"],
+    hostedRequired: ["DATABASE_URL", "DIRECT_URL", "NEON_AUTH_BASE_URL"],
   },
   cloudflare: {
     required: ["TELEGRAM_BOT_TOKEN", "API_BASE_URL", "TRACKX_API_SECRET"],
@@ -86,7 +89,7 @@ for (const key of parsed.values.keys()) {
 
   if (key.startsWith("SUPABASE_") || key.startsWith("NEXT_PUBLIC_SUPABASE_")) {
     warnings.push(
-      `${key} is present but TrackX currently uses Prisma URLs, not Supabase client keys.`,
+      `${key} is a legacy variable and is unused after the Neon migration.`,
     );
   }
 }

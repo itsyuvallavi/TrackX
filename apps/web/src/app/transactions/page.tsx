@@ -6,6 +6,8 @@ import { ApiError } from "@/lib/api";
 import { requireAuthenticatedUser } from "@/lib/auth";
 import { loadTransactions } from "@/lib/server-page-data";
 
+export const dynamic = "force-dynamic";
+
 export default async function TransactionsPage() {
   const user = await requireAuthenticatedUser();
 

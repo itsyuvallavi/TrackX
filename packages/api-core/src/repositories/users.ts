@@ -19,9 +19,21 @@ export type TelegramConnectionRecord = {
   telegramUserId: string | null;
 };
 
+export type AuthProviderName = "neon" | "supabase";
+
+export class AuthIdentityConflictError extends Error {
+  constructor(email: string) {
+    super(
+      `An existing TrackX account for ${email} is not linked to this login.`,
+    );
+    this.name = "AuthIdentityConflictError";
+  }
+}
+
 export type UserRepository = {
   ensureAuthUser(input: {
-    authUserId: string;
+    provider: AuthProviderName;
+    providerUserId: string;
     email: string | null;
   }): Promise<UserRecord>;
   ensureDefaultUser(): Promise<UserRecord>;
@@ -38,28 +50,61 @@ export function createPrismaUserRepository(
 ): UserRepository {
   return {
     async ensureAuthUser(input) {
-      const existing = await prisma.user.findUnique({
-        where: { id: input.authUserId },
-        select: { id: true },
+      const identity = await prisma.authIdentity.findUnique({
+        where: {
+          provider_providerUserId: {
+            provider: input.provider,
+            providerUserId: input.providerUserId,
+          },
+        },
+        select: {
+          id: true,
+          email: true,
+          user: {
+            select: { id: true, defaultCurrency: true, timezone: true },
+          },
+        },
       });
 
-      const user = await prisma.user.upsert({
-        where: { id: input.authUserId },
-        create: {
-          id: input.authUserId,
+      if (identity) {
+        if (identity.email !== input.email) {
+          await prisma.authIdentity.update({
+            where: { id: identity.id },
+            data: { email: input.email },
+          });
+        }
+
+        return identity.user;
+      }
+
+      if (input.email) {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: input.email },
+          select: { id: true },
+        });
+
+        if (existingUser) {
+          throw new AuthIdentityConflictError(input.email);
+        }
+      }
+
+      const user = await prisma.user.create({
+        data: {
           email: input.email,
           defaultCurrency: "EUR",
           timezone: DEFAULT_LOCAL_TIMEZONE,
-        },
-        update: {
-          email: input.email,
+          authIdentities: {
+            create: {
+              provider: input.provider,
+              providerUserId: input.providerUserId,
+              email: input.email,
+            },
+          },
         },
         select: { id: true, defaultCurrency: true, timezone: true },
       });
 
-      if (!existing) {
-        await ensureDefaultSettings(user.id);
-      }
+      await ensureDefaultSettings(user.id);
 
       return user;
     },

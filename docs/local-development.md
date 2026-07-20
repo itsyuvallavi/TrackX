@@ -57,11 +57,11 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/trackx"
 DIRECT_URL="postgresql://postgres:postgres@localhost:5432/trackx"
 ```
 
-For Supabase production, use the transaction pooler URL for `DATABASE_URL` and
-the session/direct URL for `DIRECT_URL`. Keep both values in local `.env` and in
-Vercel Project Environment Variables; never commit real database passwords.
+For Neon production, use the pooled URL for `DATABASE_URL` and the unpooled
+branch URL for `DIRECT_URL`. Keep both values in local `.env` and in Vercel
+Project Environment Variables; never commit real database passwords.
 
-After setting hosted Supabase URLs, deploy migrations and seed the database:
+After setting hosted Neon URLs, deploy migrations and seed the database:
 
 ```bash
 pnpm env:check -- --target=vercel
@@ -84,13 +84,14 @@ pnpm worker:dev
 
 The web dashboard reads from `WEB_API_BASE_URL` only when it is set. Leave it
 empty to use same-origin Next.js Route Handlers under `/api`, which is the
-recommended local path while testing Supabase dashboard auth. Set it to
+recommended local path while testing Neon dashboard auth. Set it to
 `http://localhost:4001` when you intentionally want the dashboard to talk to the
 local Fastify API.
 
-`pnpm web:dev` loads the root `.env` through the Next.js config so Supabase auth
-middleware can read `NEXT_PUBLIC_SUPABASE_URL` and
-`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` during local dashboard testing.
+`pnpm web:dev` loads the root `.env` through the Next.js config. Set
+`NEON_AUTH_BASE_URL` to the Neon Auth endpoint and use a private random
+`NEON_AUTH_COOKIE_SECRET` with at least 32 characters for local dashboard
+sessions. Production and Preview must use the same cookie secret.
 
 The worker reads `REDIS_URL` from `.env` and keeps BullMQ schedules disabled unless `WORKER_ENABLE_SCHEDULES=true`. This worker is for local queue learning only; production should use Vercel Cron routes if scheduled summaries are added.
 

@@ -2,7 +2,7 @@
 
 TrackX is a Telegram-first AI expense tracker. Send natural-language finance messages to a Telegram bot, parse them into structured transactions, store them in Postgres, update weekly and monthly budgets, and review the same data in a web dashboard.
 
-The MVP vertical path is implemented locally: parser, API, bot, web dashboard, and a BullMQ worker placeholder. Production prep now includes same-origin Vercel Route Handlers in the web app. Production direction is Vercel Route Handlers, Supabase Postgres, and Cloudflare Telegram webhooks; no production Redis/BullMQ worker is planned for now.
+The MVP vertical path is implemented locally: parser, API, bot, web dashboard, and a BullMQ worker placeholder. Production uses same-origin Vercel Route Handlers, Neon Postgres and Neon Auth, and Cloudflare Telegram webhooks; no production Redis/BullMQ worker is planned for now.
 
 ## Quick Start
 
@@ -54,7 +54,7 @@ Implemented locally:
 - Prisma/Postgres data model with seed budgets and categories
 - Next.js dashboard for month/week summaries and transaction edit/delete
 - Same-origin Next.js API routes for Vercel deployment
-- Supabase email/password auth for protected dashboard pages and web API routes
+- Neon email/password auth for protected dashboard pages and web API routes
 - BullMQ worker placeholder connected to Redis
 - Shared Zod schemas and offline-first unit tests
 
@@ -230,7 +230,7 @@ Ownership:
 - Prisma schema for users, categories, transactions, budgets, exchange rates, and parse events.
 - Prisma client factory for services.
 - Seed data for the deterministic local user, default categories, and default EUR budgets.
-- Public table RLS enabled for hosted Supabase, with explicit API-only deny policies for `anon`/`authenticated` access.
+- Public table RLS retained in hosted Neon, with business access owned by the Vercel API and stable auth identity mappings.
 
 Focused commands:
 
@@ -250,10 +250,10 @@ The local database uses the `postgres` Docker Compose service. For local Docker,
 `DATABASE_URL` and `DIRECT_URL` can both point at
 `postgresql://postgres:postgres@localhost:5432/trackx`.
 
-For Supabase/Vercel, use two URLs:
+For Neon/Vercel, use two URLs:
 
-- `DATABASE_URL`: Supabase transaction pooler URL for runtime/serverless queries.
-- `DIRECT_URL`: Supabase session/direct URL for Prisma migrations.
+- `DATABASE_URL`: Neon pooled URL for runtime/serverless queries.
+- `DIRECT_URL`: Neon unpooled branch URL for Prisma migrations.
 
 Hosted database setup:
 
@@ -436,7 +436,7 @@ Status: implemented in Slice 10.
 Ownership:
 
 - Next.js App Router dashboard.
-- Supabase email/password auth for `/dashboard`, `/transactions`, and protected web API routes.
+- Neon email/password auth for `/dashboard`, `/transactions`, and protected web API routes.
 - Account confirmation now leads new users toward Settings so Telegram can be connected before regular use.
 - Server-side API reads for month/week summaries, budgets, and transactions.
 - Server actions for transaction edit and delete.
@@ -461,8 +461,8 @@ dashboard auth. In Docker, set it to `http://api:4001` when routing through the
 Fastify API container.
 
 Local `pnpm web:dev` reads the root `.env` through `apps/web/next.config.ts` so
-Supabase auth middleware can protect `/dashboard`, `/transactions`, and the
-same-origin data APIs during local testing.
+Neon Auth can protect `/dashboard`, `/transactions`, and the same-origin data
+APIs during local testing.
 
 ### `@trackx/worker`
 
@@ -512,19 +512,19 @@ Variables used by TrackX services and tooling:
 
 App-specific variables read outside `@trackx/config`:
 
-| Variable                               | Purpose                                                   |
-| -------------------------------------- | --------------------------------------------------------- |
-| `WEB_API_BASE_URL`                     | Optional API base URL override for the dashboard          |
-| `NEXT_PUBLIC_SITE_URL`                 | Public app URL for Supabase auth redirects                |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase project URL for dashboard auth                   |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key for dashboard auth sessions |
-| `WORKER_ENABLE_SCHEDULES`              | Enable BullMQ cron schedules (`true` / `false`)           |
+| Variable                  | Purpose                                              |
+| ------------------------- | ---------------------------------------------------- |
+| `WEB_API_BASE_URL`        | Optional API base URL override for the dashboard     |
+| `NEXT_PUBLIC_SITE_URL`    | Public app URL used by auth redirects                |
+| `NEON_AUTH_BASE_URL`      | Neon Auth endpoint, including the database auth path |
+| `NEON_AUTH_COOKIE_SECRET` | Private server-side session cookie signing secret    |
+| `WORKER_ENABLE_SCHEDULES` | Enable BullMQ cron schedules (`true` / `false`)      |
 
 Cloudflare Worker secrets for `apps/webhook` are configured with Wrangler (`TELEGRAM_BOT_TOKEN`, `API_BASE_URL`, `TRACKX_API_SECRET`, optional `TELEGRAM_WEBHOOK_SECRET`, and optional Better Stack telemetry variables). See [docs/cloudflare-webhook.md](./docs/cloudflare-webhook.md).
 
 Telegram access is account-owned. Settings can generate short-lived one-time codes stored in the `telegram_link_codes` table, and the Cloudflare webhook can consume them with `/link CODE`. Production writes require the linked Telegram ID and the existing webhook-to-Vercel `TRACKX_API_SECRET`.
 
-Operational message traces are stored in Supabase `message_events`. To watch
+Operational message traces are stored in Neon `message_events`. To watch
 Telegram, Cloudflare Worker, Vercel API, parser, database write, and reply
 events in one live terminal stream, run:
 
@@ -542,7 +542,7 @@ pnpm logs:live -- --timezone Europe/Lisbon
 
 When `BETTER_STACK_SOURCE_TOKEN` and `BETTER_STACK_INGESTING_HOST` are set,
 a sanitized operational subset of each lifecycle event is also exported to
-Better Stack for a hosted live tail. Supabase remains the durable audit source
+Better Stack for a hosted live tail. Neon remains the durable audit source
 and retains the full event. Better Stack delivery runs after the request and
 cannot delay the user response; it excludes user and Telegram identifiers plus
 raw message and reply previews. Both stores use the same `correlationId`.
@@ -590,7 +590,7 @@ Run `pnpm env:check -- --target=local` before local startup and `pnpm env:check 
 
 ### Dashboard shows "Dashboard unavailable"
 
-- Confirm `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set for dashboard auth
+- Confirm `NEON_AUTH_BASE_URL` and `NEON_AUTH_COOKIE_SECRET` are set for dashboard auth
 - Leave `WEB_API_BASE_URL` unset for same-host `/api`, or point it to a running API such as `http://localhost:4001`
 - Migrate and seed Postgres: `pnpm db:migrate && pnpm db:seed`
 
@@ -629,7 +629,7 @@ See [PLAN.md](./PLAN.md) for the full implementation history.
 
 ## Production Direction
 
-The Vercel API migration layer now exists under `apps/web/src/app/api` and calls `@trackx/api-core`. Parser behavior has been extracted to `@trackx/parser-core` so Vercel can parse in-process without a separate parser host. Hosted Supabase is connected, public table RLS is enabled, and dashboard auth is protected by Supabase email/password sessions.
+The Vercel API layer exists under `apps/web/src/app/api` and calls `@trackx/api-core`. Parser behavior lives in `@trackx/parser-core` so Vercel can parse in-process without a separate parser host. Hosted Neon stores the production data, public table RLS remains enabled, and Neon Auth protects dashboard sessions while `auth_identities` preserves stable TrackX user ownership.
 
 The Vercel project must be configured as the `apps/web` Next.js app:
 

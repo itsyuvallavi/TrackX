@@ -151,7 +151,7 @@ Inside Docker, services use internal hostnames such as `postgres`, `redis`, `par
 
 ## Explicit Non-Goals (MVP)
 
-- User authentication for the web dashboard
+- Additional social or enterprise identity providers beyond Neon email auth
 - Bank integrations or receipt OCR imports
 - Sentry or production deployment pipelines
 - Live scheduled worker jobs by default
@@ -160,6 +160,6 @@ Inside Docker, services use internal hostnames such as `postgres`, `redis`, `par
 
 ## Related docs
 
-- [platform-stack.md](./platform-stack.md) — target cloud platforms (Vercel, Supabase, Cloudflare) and deployment decisions
+- [platform-stack.md](./platform-stack.md) — target cloud platforms (Vercel, Neon, Cloudflare) and deployment decisions
 - [cloudflare-webhook.md](./cloudflare-webhook.md) — Cloudflare Worker setup
 - [local-development.md](./local-development.md) — local commands and Docker

@@ -1,7 +1,7 @@
-// Owner: apps/web. Server-side Supabase auth boundary for protected app routes.
+// Owner: apps/web. Server-side Neon Auth boundary for protected app routes.
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserRepository } from "@/lib/api-route-runtime";
+import { getNeonAuth } from "@/lib/neon-auth";
 
 export type AuthenticatedUser = {
   id: string;
@@ -9,16 +9,22 @@ export type AuthenticatedUser = {
 };
 
 export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.getUser();
+  const { data: session, error } = await getNeonAuth().getSession();
 
-  if (error || !data.user) {
+  if (error || !session?.user) {
     return null;
   }
 
+  const email = session.user.email ?? null;
+  const user = await getUserRepository().ensureAuthUser({
+    provider: "neon",
+    providerUserId: session.user.id,
+    email,
+  });
+
   return {
-    id: data.user.id,
-    email: data.user.email ?? null,
+    id: user.id,
+    email,
   };
 }
 
@@ -28,11 +34,6 @@ export async function requireAuthenticatedUser(): Promise<AuthenticatedUser> {
   if (!user) {
     redirect("/login");
   }
-
-  await getUserRepository().ensureAuthUser({
-    authUserId: user.id,
-    email: user.email,
-  });
 
   return user;
 }

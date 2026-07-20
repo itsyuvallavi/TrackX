@@ -1,6 +1,6 @@
-// Owner: apps/web. Email/password auth entrypoint for the TrackX dashboard.
+// Owner: apps/web. Neon email/password auth entrypoint for the TrackX dashboard.
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getNeonAuth } from "@/lib/neon-auth";
 
 type LoginPageProps = {
   searchParams: Promise<{
@@ -55,8 +55,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <p className="text-sm text-success">{params.message}</p>
           ) : null}
           <p className="text-xs leading-5 text-ink-muted">
-            New accounts use email confirmation. After confirming, TrackX will
-            open Settings so you can connect Telegram.
+            New accounts open Settings after signup so Telegram and Wallet can
+            be connected.
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
@@ -89,36 +89,26 @@ async function authenticate(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const intent = String(formData.get("intent") ?? "sign-in");
   const nextPath = normalizeNextPath(String(formData.get("next") ?? ""));
-  const supabase = await createSupabaseServerClient();
+  const auth = getNeonAuth();
   const result =
     intent === "sign-up"
-      ? await supabase.auth.signUp({
+      ? await auth.signUp.email({
           email,
           password,
-          options: { emailRedirectTo: `${getSiteUrl()}/auth/callback` },
+          name: email.split("@")[0] || "TrackX user",
         })
-      : await supabase.auth.signInWithPassword({ email, password });
+      : await auth.signIn.email({ email, password });
 
   if (result.error) {
-    redirect(`/login?error=${encodeURIComponent(result.error.message)}`);
+    const message = result.error.message ?? "Authentication failed.";
+    redirect(`/login?error=${encodeURIComponent(message)}`);
   }
 
-  redirect(
-    intent === "sign-up"
-      ? "/login?message=Check your email, then connect Telegram from Settings."
-      : nextPath,
-  );
+  redirect(intent === "sign-up" ? "/settings" : nextPath);
 }
 
 function normalizeNextPath(value: string): string {
   return value.startsWith("/") && !value.startsWith("//")
     ? value
     : "/dashboard";
-}
-
-function getSiteUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ??
-    "https://track-x-web-two.vercel.app"
-  );
 }
